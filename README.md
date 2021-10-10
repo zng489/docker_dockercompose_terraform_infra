@@ -8,6 +8,7 @@
 >> (base) root@b385e6ba35f5:/# home
 >> bash: home: command not found
 >> (base) root@b385e6ba35f5:/# cd /home/
+                            ==> Folder of container
 >> (base) root@b385e6ba35f5:/home# jupyter notebook --ip='*' --port=8888 --no-browser --allow-root &
 >> http://b385e6ba35f5:8888/?token=14a31f116e1aac471fcd9b03390fc3dcf5e937e426cd33af
 ```
