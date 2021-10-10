@@ -18,6 +18,7 @@
 - docker top mongo
 - docker start mongo
 - docker logs f8c91284636e
+- docker exec <id do container> -ti /bin/bash
 ```
 
 ```
