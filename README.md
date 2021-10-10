@@ -17,6 +17,7 @@
 - docker ps
 - docker top mongo
 - docker start mongo
+- docker logs f8c91284636e
 ```
 
 ```
