@@ -1,32 +1,22 @@
 # Docker
 
 ```
-docker version
+# Docker Command
 
-docker info
-
-docker
-
-docker container run == docker run
-
-docker <command> (options)
-
-docker <command> <sub-command> (options)
-
-C:\Users\Yuan>docker container run --publish 80:80 nginx
-
-docker container ls
-docker container stop 690
-docker container ls -a
-docker container rm 690
-
-docker run --name mongo -d mongo
-
-docker ps
-
-docker top mongo
-
-docker start mongo
+- docker version
+- docker info
+- docker container run == docker run
+- docker <command> (options)
+- docker <command> <sub-command> (options)
+- C:\Users\Yuan>docker container run --publish 80:80 nginx
+- docker container ls
+- docker container stop 690
+- docker container ls -a
+- docker container rm 690
+- docker run --name mongo -d mongo
+- docker ps
+- docker top mongo
+- docker start mongo
 ```
 
 ```
