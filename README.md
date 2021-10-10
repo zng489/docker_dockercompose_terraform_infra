@@ -1,6 +1,35 @@
 # Docker
 
 ```
+docker version
+
+docker info
+
+docker
+
+docker container run == docker run
+
+docker <command> (options)
+
+docker <command> <sub-command> (options)
+
+C:\Users\Yuan>docker container run --publish 80:80 nginx
+
+docker container ls
+docker container stop 690
+docker container ls -a
+docker container rm 690
+
+docker run --name mongo -d mongo
+
+docker ps
+
+docker top mongo
+
+docker start mongo
+```
+
+```
 >> docker run -it -p 8888:8888 -v "c:/Users/Yuan/docker_test:/home" continuumio/anaconda3 /bin/bash
                                    => Folder of your computer:Folder of your container
 >> (base) root@b385e6ba35f5:/# ls
