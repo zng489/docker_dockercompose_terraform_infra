@@ -37,6 +37,18 @@ RUN pip install numpy \ pandas \ scikit-learn \ tensorflow \ seaborn \ jupyter \
 EXPOSE 8888
 
 ENTRYPOINT [ "jupyter", "notebook", "--ip=0.0.0.0", "--allow-root", "--no-browser" ]
+
+docker run -d --rm --name jupyterserver -p 8888:8888 -v "c:/Users/Yuan/Desktop/folder/new:/home/notebooks" image-ds
+
+C:\Users\Yuan\Desktop\folder>docker images
+REPOSITORY               TAG       IMAGE ID       CREATED         SIZE
+image-ds                 latest    8348a24c62a1   2 minutes ago   2.41GB
+jupyter/scipy-notebook   latest    19b33596f37c   2 days ago      2.57GB
+mongo                    latest    c1a14d3979c5   9 days ago      691MB
+nginx                    latest    f8f4ffc8092c   12 days ago     133MB
+continuumio/anaconda3    latest    f78cb37fb1bd   4 weeks ago     2.81GB
+docker/getting-started   latest    083d7564d904   4 months ago    28MB
+
 ```
 ============================================================================================
 
