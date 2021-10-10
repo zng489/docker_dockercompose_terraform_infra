@@ -48,6 +48,8 @@ ENTRYPOINT [ "jupyter", "notebook", "--ip=0.0.0.0", "--allow-root", "--no-browse
 -------------------------------------------
 -------------------------------------------
 
+docker build -t image-ds .
+
 docker run -d --rm --name jupyterserver -p 8888:8888 -v "c:/Users/Yuan/Desktop/folder/new:/home/notebooks" image-ds
 
 C:\Users\Yuan\Desktop\folder>docker images
