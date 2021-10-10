@@ -28,6 +28,7 @@
 
 ```
 # Imagem com Jupyter Notebook e algumas bibliotecas.
+# Folder + Dockerfile
 
 -------------------------------------------
 -------------------------------------------
