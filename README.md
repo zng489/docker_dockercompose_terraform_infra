@@ -52,6 +52,8 @@ docker build -t image-ds .
 
 docker run -d --rm --name jupyterserver -p 8888:8888 -v "c:/Users/Yuan/Desktop/folder/new:/home/notebooks" image-ds
 
+docker container logs jupyterserver
+
 C:\Users\Yuan\Desktop\folder>docker images
 REPOSITORY               TAG       IMAGE ID       CREATED         SIZE
 image-ds                 latest    8348a24c62a1   2 minutes ago   2.41GB
