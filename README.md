@@ -21,6 +21,25 @@
 - docker exec <id do container> -ti /bin/bash
 ```
 
+========================================================================================================
+
+```
+# Imagem com Jupyter Notebook e algumas bibliotecas.
+
+FROM python:3.8-slim-buster
+
+RUN mkdir -p /home/notebooks
+
+WORKDIR /home/notebooks
+
+RUN pip install numpy \ pandas \ scikit-learn \ tensorflow \ seaborn \ jupyter \ notebook
+
+EXPOSE 8888
+
+ENTRYPOINT [ "jupyter", "notebook", "--ip=0.0.0.0", "--allow-root", "--no-browser" ]
+```
+=========================================================================================================
+
 ```
 >> docker run -it -p 8888:8888 -v "c:/Users/Yuan/docker_test:/home" continuumio/anaconda3 /bin/bash
                                    => Folder of your computer:Folder of your container
