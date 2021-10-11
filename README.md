@@ -227,3 +227,27 @@ Error: No such container: bf32953a561f
 
 C:/Users/Yuan/Desktop/Docker_Test_Tutorial/cd_for_docker
 ```
+
+```
+>> docker run -it -p 8888:8888 -v "c:/Users/Yuan/Desktop/pyspark_notebook:/home" jupyter/pyspark-notebook /bin/bash
+                                   => Folder of your computer:Folder of your container
+>> (base) root@b385e6ba35f5:/# ls
+>> bin  boot  dev  etc  home  lib  lib64  media  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
+>> (base) root@b385e6ba35f5:/# home
+>> bash: home: command not found
+>> (base) root@b385e6ba35f5:/# cd /home/
+                            ==> Folder of container
+>> (base) root@b385e6ba35f5:/home# jupyter notebook --ip='*' --port=8888 --no-browser --allow-root &
+>> http://b385e6ba35f5:8888/?token=14a31f116e1aac471fcd9b03390fc3dcf5e937e426cd33a
+
+
+docker run -d --rm --name jupyterserver -p 8888:8888 -v "c:/Users/Yuan/Desktop/pyspark_notebook:/home" pyspark 
+
+
+
+jupyter/pyspark-notebook
+
+docker run -d -p 8888:8888 -e JUPYTER_ENABLE_LAB=yes --name zhang_pyspark -v "c:/Users/Yuan/Desktop/pyspark_notebook:/home/jovyan/work" jupyter/pyspark-notebook
+
+docker run -d -p 8888:8888 --name zhang_pyspark -v "c:/Users/Yuan/Desktop/pyspark_notebook:/home/jovyan/work" jupyter/pyspark-notebook
+```
