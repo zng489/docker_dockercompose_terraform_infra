@@ -534,3 +534,11 @@ docker build -t zhang .
 docker run -d --rm --name jupyterserver -p 8888:8888 -v "c:/Users/Yuan/Desktop/Building:/folder" zhang
 =========================================================================================================================
 ```
+
+```
+=========================================================================================================================
+docker run -d -p 8888:8888 -e JUPYTER_ENABLE_LAB=yes --name zhang_pyspark -v "c:/Users/Yuan/Desktop/pyspark_notebook:/home/jovyan/work" jupyter/pyspark-notebook
+=========================================================================================================================
+docker run -d -p 8888:8888 --name zhang_pyspark -v "c:/Users/Yuan/Desktop/pyspark_notebook:/home/jovyan/work" jupyter/pyspark-notebook
+=========================================================================================================================
+```
