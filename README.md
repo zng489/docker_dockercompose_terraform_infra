@@ -556,12 +556,10 @@ Go to the
 
 ```
 
+# Docker Repository
 
-yuan28
-/
-pyspark
-This repository does not have a description
-Last pushed: never
-Docker commands
-To push a new tag to this repository,
-docker push yuan28/pyspark:tagname
+```
+Repository create: yuan28/pyspark
+
+Commando to push: docker push yuan28/pyspark:tagname
+```
