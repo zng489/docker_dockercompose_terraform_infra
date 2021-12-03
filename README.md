@@ -571,7 +571,7 @@ zhang                      latest    15f58dab56b9   3 weeks ago    2.67GB
 
 C:\Users\Yuan>docker push yuan28/pyspark:tagname <tagname> can be anything, it`s just ID created..
 ```
-# x-----x-----x-----x-----x-----x-----x-----x-----x-----x-----x-----x-----x-----x-----x-----x-----
+# x-----x-----x-----x-----x-----x-----x
 
 # Docker Repository
 
