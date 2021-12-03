@@ -571,3 +571,20 @@ zhang                      latest    15f58dab56b9   3 weeks ago    2.67GB
 
 C:\Users\Yuan>docker push yuan28/pyspark:tagname <tagname> can be anything, it`s just ID created..
 ```
+# x-----x-----x-----x-----x-----x-----x-----x-----x-----x-----x-----x-----x-----x-----x-----x-----
+
+# Docker Repository
+
+```
+Repository create: yuan28/pyspark
+
+Commando to push: C:\Users\Yuan>docker tag c402ee9c2d7f yuan28/pyspark:tagname <tagname> can be anything, it`s just ID created..
+
+C:\Users\Yuan>docker images
+REPOSITORY                 TAG       IMAGE ID       CREATED        SIZE
+dbc2csv                    latest    66ae2082b35c   42 hours ago   617MB
+jupyter/pyspark-notebook   latest    c402ee9c2d7f   2 days ago     3.32GB
+zhang                      latest    15f58dab56b9   3 weeks ago    2.67GB
+
+C:\Users\Yuan>docker push yuan28/pyspark:tagname <tagname> can be anything, it`s just ID created..
+```
