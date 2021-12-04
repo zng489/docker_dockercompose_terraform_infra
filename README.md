@@ -616,7 +616,7 @@ TERMINAL:
 >>docker run --rm wesleywillians/hello bash
 Hello bash
 
-CMD:
+ENTRYPOINT:
 - It`s a not flexible command.
 
 ```
