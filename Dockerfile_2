@@ -1,0 +1,56 @@
+##############################################################
+# Building a image from a pre-build
+
+FROM nginx:latest
+FROM jupyter/pyspark-notebook:latest
+
+##############################################################
+# Creating a directory for your file in the container
+
+RUN mkdir -p /home/notebooks
+WORKDIR /home/notebooks
+
+# Or just simple like that, it depende on what do you want it 
+
+WORKDIR /home/jovyan/work
+
+##############################################################
+# Installling
+
+# Updating
+RUN pip install --upgrade pip
+
+# Copy files and installing
+COPY requirements.txt ./  
+# Or Copy files in the /home/jovyan/work and installing
+COPY requirements.txt /home/jovyan/work 
+# Or copying all the files
+COPY ..
+# Executing the installation
+RUN pip install -r requirements.txt
+
+# Installling
+RUN pip install numpy \ pandas \ scikit-learn \ tensorflow \ seaborn \ jupyter \ notebook
+##############################################################
+
+EXPOSE 8888
+
+#Short answer:
+#EXPOSE is a way of documenting
+#--publish (or -p) is a way of mapping a host port to a running container port
+#Notice below that:
+#
+#EXPOSE is related to Dockerfiles ( documenting )
+#--publish is related to docker run ... ( execution / run-time )
+
+#############################################################################################
+
+ENTRYPOINT [ "jupyter", "notebook", "--ip=0.0.0.0", "--allow-root", "--no-browser" ]
+
+
+# acessar meu servidor local por ip usando o comando mostrado abaixo:
+#jupyter notebook --ip xx.xx.xx.xx --port 8888
+# substitua o xx.xx.xx.xxpelo seu ip local do servidor jupyter.
+# usei jupyter notebook --ip 0.0.0.0 --port 8888 0.0.0.0permitirá o acesso ao notebook em todas as interfaces de rede, não apenas localhost. Se você estiver executando e acessando na mesma máquina, ou estiver executando um servidor como o nginx na frente dele, você deve limitá-lo a 127.0.0.1apenas 
+
+##########################################################################################
