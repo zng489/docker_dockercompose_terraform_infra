@@ -630,6 +630,7 @@ ENTRYPOINT:
 ```
 
 ```
+--------------
 COPY .. 
 - copiando todos arquivos da minha maquina no container
 
@@ -638,4 +639,8 @@ RUN go build main.go
 EXPOSE 8080
 
 ENTRYPOINT ["./main"]
+----------------
+
+
 ```
+
