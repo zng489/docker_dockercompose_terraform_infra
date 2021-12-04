@@ -580,3 +580,43 @@ docker container run --publish 80:80 nginx
 - docker run(old way)
 - 8888(any port whatever you want it):80
 ```
+
+```
+Differences between "CMD" and "ENTRYPOINT
+------------------------------------------
+	### CMD ###
+
+FROM ubuntu:latest
+
+CMD ["echo","Hello"]
+
+TERMINAL:
+>>docker run --rm wesleywillians/hello
+Hello
+
+>>docker run --rm wesleywillians/hello echo "ola"
+ola
+
+>>docker run --rm wesleywillians/hello bash
+>>
+
+CMD:
+- It`s a flexible command, which means basically you can replace for any command you want it.
+
+- É um command flexível, ou seja, você pode substituir por qualquer comando.
+
+
+	### ENTRYPOINT ###
+
+FROM ubuntu:latest
+
+ENTRYPOINT ["echo","Hello"]
+
+TERMINAL:
+>>docker run --rm wesleywillians/hello bash
+Hello bash
+
+CMD:
+- It`s a not flexible command.
+
+```
