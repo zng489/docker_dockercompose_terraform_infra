@@ -628,3 +628,14 @@ ENTRYPOINT:
 - It`s a not flexible command.
 
 ```
+
+```
+COPY .. 
+- copiando todos arquivos da minha maquina no container
+
+RUN go build main.go
+
+EXPOSE 8080
+
+ENTRYPOINT ["./main"]
+```
