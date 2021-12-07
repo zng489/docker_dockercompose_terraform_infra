@@ -1,6 +1,28 @@
 # Docker
 
 ```
+FROM node:latest
+--> WORKDIR /usr/src/app
+--> COPY package.json . == ja esta na pasta /usr/src/app, logo apenas copiar o arquivo package.json para a tal pasta
+RUN npm install
+COPY . ./
+EXPOSE 3000
+CMD [ “npm”, “start” ]
+
+FROM python:alpine3.7
+--> COPY . /app == COPY .(para a pasta) /app
+--> WORKDIR /app
+RUN pip install -r requirements.txt
+EXPOSE 5001
+ENTRYPOINT [ "python" ]
+CMD [ "demo.py" ]
+
+
+Let’s see what our Dockerfile does. FROM python:alpine3.7 pulls python 3.7’s image from the docker hub, COPY command copies the flask app into the container and WORKDIR command sets the working directory. “RUN pip install -r requirements.txt” this command will install each requirement written in “requirements.txt ” file one by one bye on the host system. EXPOSE as the name says exposes port 5001 which Flask app will use to the container so that later it can be mapped with the system’s port. Entrypoint and CMD together just execute the command “python demo.py” which runs this file.
+
+```
+
+```
 # Docker Command
 
 - docker version
