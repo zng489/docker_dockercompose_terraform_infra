@@ -48,7 +48,6 @@ EXPOSE 8888
 
 ENTRYPOINT [ "jupyter", "notebook", "--ip=0.0.0.0", "--allow-root", "--no-browser" ]
 
-
 # acessar meu servidor local por ip usando o comando mostrado abaixo:
 #jupyter notebook --ip xx.xx.xx.xx --port 8888
 # substitua o xx.xx.xx.xxpelo seu ip local do servidor jupyter.
@@ -58,29 +57,14 @@ ENTRYPOINT [ "jupyter", "notebook", "--ip=0.0.0.0", "--allow-root", "--no-browse
 
 # docker build -t jupyter_yuan .
 
-
 # docker run -p 8988:8888 -v "c:/Users/Yuan/Desktop/Jupyter_Docker:/home/jovyan/workspace" jupyter_yuan
 
 # -p = --publish
-
 
 # Commando to push: C:\Users\Yuan>docker tag c402ee9c2d7f yuan28/pyspark:tagname <tagname> can be anything, it`s just ID created..
 # docker tag f35f5304b517 jupyter_yuan:notebook
 
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ```
 FROM node:latest
@@ -92,6 +76,7 @@ EXPOSE 3000
 CMD [ “npm”, “start” ]
 
 FROM python:alpine3.7
+
 --> COPY . /app == COPY .(para a pasta) /app
 --> WORKDIR /app
 RUN pip install -r requirements.txt
@@ -99,13 +84,13 @@ EXPOSE 5001
 ENTRYPOINT [ "python" ]
 CMD [ "demo.py" ]
 
-
 Let’s see what our Dockerfile does. FROM python:alpine3.7 pulls python 3.7’s image from the docker hub, COPY command copies the flask app into the container and WORKDIR command sets the working directory. “RUN pip install -r requirements.txt” this command will install each requirement written in “requirements.txt ” file one by one bye on the host system. EXPOSE as the name says exposes port 5001 which Flask app will use to the container so that later it can be mapped with the system’s port. Entrypoint and CMD together just execute the command “python demo.py” which runs this file.
 
-
---tag == t
-
+--tag => -t
+--publish => -p
 ```
+
+
 
 ```
 # Docker Command
@@ -131,7 +116,7 @@ Let’s see what our Dockerfile does. FROM python:alpine3.7 pulls python 3.7’s
 ==========================================================================================
 ==========================================================================================
 
-# Dockerfile
+# Dockerfile_Python
 
 ```
 # Imagem com Jupyter Notebook e algumas bibliotecas.
@@ -507,133 +492,7 @@ win-unicode-console==0.5
 wincertstore==0.2
 wrapt==1.12.1
 xlrd==2.0.1
-=========================================================================================================================
--r requirements.txt
 
-absl-py
-argon2-cffi
-astunparse
-attrs
-backcall
-beautifulsoup4
-bleach
-bs4
-cachetools
-cassandra-driver
-certifi
-cffi
-chardet
-charset-normalizer
-clang
-click
-colorama
-cycler
-debugpy
-decorator
-defusedxml
-entrypoints
-et-xmlfile
-flatbuffers
-gast
-geomet
-google-auth
-google-auth-oauthlib
-google-pasta
-greenlet
-grpcio
-h5py
-idna
-ipykernel
-ipython
-ipython-genutils
-ipywidgets
-jedi
-Jinja2
-joblib
-jsonschema
-jupyter
-jupyter-client
-jupyter-console=
-jupyter-core==4.8.1
-jupyterlab-pygments==0.1.2
-jupyterlab-widgets==1.0.2
-keras==2.6.0
-Keras-Preprocessing==1.1.2
-kiwisolver==1.3.2
-Markdown==3.3.4
-MarkupSafe==2.0.1
-matplotlib==3.4.3
-matplotlib-inline==0.1.3
-mistune==0.8.4
-nbclient==0.5.4
-nbconvert==6.2.0
-nbformat==5.1.3
-nest-asyncio==1.5.1
-notebook==6.4.4
-numpy==1.19.5
-oauthlib==3.1.1
-openpyxl==3.0.9
-opt-einsum==3.3.0
-packaging==21.0
-pandas==1.3.3
-pandocfilters==1.5.0
-parso==0.8.2
-pexpect==4.8.0
-pickleshare==0.7.5
-Pillow==8.3.2
-plotly==5.3.1
-prometheus-client==0.11.0
-prompt-toolkit==3.0.20
-protobuf==3.18.1
-ptyprocess==0.7.0
-pyasn1==0.4.8
-pyasn1-modules==0.2.8
-pycparser==2.20
-Pygments==2.10.0
-pyparsing==2.4.7
-pyrsistent==0.18.0
-python-dateutil==2.8.2
-pytz==2021.3
-pywinpty==0.5.7
-pyzmq==22.3.0
-qtconsole==5.1.1
-QtPy==1.11.2
-requests==2.26.0
-requests-oauthlib==1.3.0
-retrying==1.3.3
-rsa==4.7.2
-scikit-learn==1.0
-scipy
-seaborn
-Send2Trash
-simplegeneric
-six
-sklearn
-soupsieve
-SQLAlchemy
-tenacity
-tensorboard
-tensorboard-data-server
-tensorboard-plugin-wit
-tensorflow
-tensorflow-estimator
-termcolor
-terminado
-testpath
-threadpoolctl
-tornado
-traitlets
-typing-extensions
-Unidecode
-urllib3
-wcwidth
-webencodings
-Werkzeug
-widgetsnbextension
-win-unicode-console
-wincertstore
-wrapt
-xlrd
 =========================================================================================================================
 docker build -t zhang .
 =========================================================================================================================
@@ -648,19 +507,6 @@ docker run -d -p 8888:8888 -e JUPYTER_ENABLE_LAB=yes --name zhang_pyspark -v "c:
 =========================================================================================================================
 docker run -d -p 8888:8888 --name zhang_pyspark -v "c:/Users/Yuan/Desktop/pyspark_notebook:/home/jovyan/work" jupyter/pyspark-notebook
 =========================================================================================================================
-```
-
-
-```html
-
-Go to the
-
-<a href="dasdasda" style="font-style: italic">
-    
-    Markdown Monster Web Site
-    
-</a>
-
 ```
 
 # Docker Repository
