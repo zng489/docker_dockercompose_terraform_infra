@@ -1,11 +1,13 @@
 # Docker
 
 ```diff
-##############################################################
+#############################################################################################
+
 # Building a image from a pre-build
 FROM jupyter/pyspark-notebook:latest
 
-##############################################################
+#############################################################################################
+
 # Creating a directory for your file in the container
 
 #RUN mkdir -p /home/notebooks
@@ -15,7 +17,8 @@ FROM jupyter/pyspark-notebook:latest
 RUN mkdir -p /home/jovyan/workspace
 WORKDIR /home/jovyan/workspace
 
-##############################################################
+#############################################################################################
+
 # Installling
 
 # Updating
@@ -32,7 +35,8 @@ RUN pip install -r requirements.txt
 
 # Installling
 RUN pip install numpy \ pandas \ scikit-learn \ tensorflow \ seaborn
-##############################################################
+
+#############################################################################################
 
 EXPOSE 8888
 
@@ -62,11 +66,14 @@ ENTRYPOINT [ "jupyter", "notebook", "--ip=0.0.0.0", "--allow-root", "--no-browse
 # -p = --publish
 
 # Commando to push: C:\Users\Yuan>docker tag c402ee9c2d7f yuan28/pyspark:tagname <tagname> can be anything, it`s just ID created..
+
 # docker tag f35f5304b517 jupyter_yuan:notebook
 
+#############################################################################################
 ```
 
 ```
+#############################################################################################
 FROM node:latest
 --> WORKDIR /usr/src/app
 --> COPY package.json . == ja esta na pasta /usr/src/app, logo apenas copiar o arquivo package.json para a tal pasta
@@ -86,10 +93,22 @@ CMD [ "demo.py" ]
 
 Let’s see what our Dockerfile does. FROM python:alpine3.7 pulls python 3.7’s image from the docker hub, COPY command copies the flask app into the container and WORKDIR command sets the working directory. “RUN pip install -r requirements.txt” this command will install each requirement written in “requirements.txt ” file one by one bye on the host system. EXPOSE as the name says exposes port 5001 which Flask app will use to the container so that later it can be mapped with the system’s port. Entrypoint and CMD together just execute the command “python demo.py” which runs this file.
 
---tag => -t
---publish => -p
+#############################################################################################
 ```
 
+# Build docker
+```
+#############################################################################################
+docker build -t image-ds .
+
+docker run -d --rm --name jupyterserver -p 8888:8888 -v "c:/Users/Yuan/Desktop/folder/new:/home/notebooks" image-ds
+
+docker container logs jupyterserver
+
+--tag => -t
+--publish => -p
+#############################################################################################
+```
 
 
 ```
@@ -183,9 +202,7 @@ See 'docker build --help'
 
 docker build -t python-imdb .
 
-
 docker run python-imdb
-
 
 Para cada modificacao, o docker precisa ser re-build it novamente!!!!
 
@@ -219,7 +236,6 @@ C:\Users\Yuan>
 docker images
 
 docker run -it -d ubuntu
-
 
 C:\Users\Yuan>docker run -it -d ubuntu
 c8c4ef5a14f4aa0851811be74ffbef6b904bf77527b8143dd1d198d846c63e8a
@@ -283,17 +299,6 @@ hello-world                latest    feb5d9fea6a5   2 weeks ago      13.3kB
 
 C:\Users\Yuan>
 
-
-
-
-
-
-
-
-
-
-
-
 C:\Users\Yuan>docker login
 Authenticating with existing credentials...
 Login Succeeded
@@ -301,10 +306,13 @@ Login Succeeded
 C:\Users\Yuan>docker push yuan/ubuntu
 Using default tag: latest
 The push refers to repository [docker.io/yuan/ubuntu]
-74f3e21680f2: Preparing                                        da55b45d310b: Preparing                                        denied: requested access to the resource is denied
-
-
+74f3e21680f2: Preparing                                        
+da55b45d310b: Preparing                                        
 denied: requested access to the resource is denied
+denied: requested access to the resource is denied
+
+
+
 
 C:\Users\Yuan>
 
