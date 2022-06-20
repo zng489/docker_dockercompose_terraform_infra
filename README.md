@@ -4,7 +4,7 @@
 <ul>
 	
 <li>
-	<a href="#ps"> Command ps </a> 
+	<a href="#Commands"> Docker Commands ps </a> 
 </li>	
 	
 <li>
@@ -22,9 +22,10 @@
 </ul>
 </h3>	
 	
------
+--------------------------------------------------------------------------------------------------------------
+
 <div>	
-	<a name="ps"> <strong> &#129094 Command ps </strong> </a>
+	<a name="Commands"> <strong> &#129094 Command ps </strong> </a>
 	<p> The docker <strong> ps </strong> command only shows running containers by default. To see all containers, use the <strong> -a </strong> (or <strong> --all </strong>) flag: </p>
 	
 ```
@@ -32,15 +33,64 @@
 CONTAINER ID   IMAGE     COMMAND       CREATED        STATUS        PORTS     NAMES
 6c1b8d1a5ec9   py_test   "/bin/bash"   22 hours ago   Up 22 hours             cool_borg
 ```
-	
-	
-	<p> &#129181 root@6c1b8d1a5ec9:/user/zhang# python python.py </p>
-	<p> &#129181 root@6c1b8d1a5ec9:/user/zhang# python "It will execute the python" </p>
 </div>	
 	
 	
+--------------------------------------------------------------------------------------------------------------
 
------
+<div>	
+	<a name="Commands"> <strong> &#129094 Command # STOP - stop a container </strong> </a>
+	
+```
+	C:\Users\Yuan>docker stop 6c1b8d1a5ec9
+6c1b8d1a5ec9g
+	
+	C:\Users\Yuan>docker stop silly_sammet	
+```
+</div>	
+
+--------------------------------------------------------------------------------------------------------------
+
+<div>	
+	<a name="Commands"> <strong> &#129094 Command # Image - List images </strong> </a>
+	
+```
+C:\Users\Yuan>docker images
+REPOSITORY                     TAG               IMAGE ID       CREATED        SIZE
+py_test                        latest            5c23fd950a4a   23 hours ago   871MB
+jenkins/jenkins                lts               cb535f2a7054   3 weeks ago    464MB
+mysql                          latest            667ee8fb158e   2 months ago   521MB
+minio/minio                    latest            2e3b7fc5f101   2 months ago   229MB
+apache/airflow                 2.1.1-python3.8   e693b02f5525   5 months ago   916MB
+docker_compose_fruit-service   latest            64f1335c5cb6   6 months ago   702MB
+flask-docker-demo-app          latest            9d2c5a7cdada   6 months ago   93.7MB
+istanbul-covid                 latest            5881cd7259a9   6 months ago   2.01GB
+jupyter_yuan                   latest            f35f5304b517   6 months ago   5.14GB
+php                            apache            555bfcb74df2   6 months ago   477MB
+	
+```
+</div>
+
+
+--------------------------------------------------------------------------------------------------------------
+
+<div>	
+	<a name="Commands"> <strong> &#129094 Command # Rm - Remove a container and # Rmi - Remove images </strong> </a>
+	
+```
+docker rm silly_sammet
+	
+docker rmi nginx
+cb535f2a7054	
+```
+</div>	
+
+
+
+
+
+
+
 <div>	
 	<a name="/bin/bash"> <strong> &#129094 /bin/bash </strong> </a>
 	<p> &#129181 Example: C:\Users\Yuan\Desktop\Python\docker>docker run -it py_test /bin/bash. "/bin/bash" allow you to access the internal files, for instance: root@6c1b8d1a5ec9:/user/zhang# ls </p>
@@ -55,10 +105,6 @@ CONTAINER ID   IMAGE     COMMAND       CREATED        STATUS        PORTS     NA
    <img src="docker_0.png" alt="[YOUR_ALT]"/>
 </p>
 </div>
-
-
-
-
 
 
 
