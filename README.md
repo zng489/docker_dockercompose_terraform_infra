@@ -3,9 +3,10 @@
 <a name="Summary"> Summary </a>   
 	
 <ul>
-	<li> <a href="#COPY"> COPY </a> 
+<li>
+	<a href="#COPY"> COPY </a> 
 	
-	</li>
+</li>
 	
 	
 </ul>
