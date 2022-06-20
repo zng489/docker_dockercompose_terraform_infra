@@ -1,18 +1,17 @@
-<p class="toc_title">Contents</p>
-<a href="#foo"> links to <div id="foo">
-	
-<a name="top"></a>
 
-<a href="#qwe">go to top of page</a>	
-<a name="qwe"></a>
+<h3> 
+<a name="Summary"> Summary </a>   
+	
+<ul>
+	<li> <a href="#COPY"> COPY </a> 
+	
+	</li>
 	
 	
-<A HREF='#codeword'>Blue Words,Blue Words</A>
-
-<A NAME='codeword'>
+</ul>
+	<a name="COPY"> COPY </a>
 	
-	
-	
+</h3>	
 	
 	
 	
