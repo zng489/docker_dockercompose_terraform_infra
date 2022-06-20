@@ -4,6 +4,10 @@
 <ul>
 	
 <li>
+	<a href="#ps"> Command ps </a> 
+</li>	
+	
+<li>
 	<a href="#COPY"> COPY </a> 
 </li>
 	
@@ -17,6 +21,23 @@
 
 </ul>
 </h3>	
+	
+-----
+<div>	
+	<a name="ps"> <strong> &#129094 Command ps </strong> </a>
+	<p> The docker <strong> ps </strong> command only shows running containers by default. To see all containers, use the <strong> -a </strong> (or <strong> --all </strong>) flag: </p>
+	
+```
+	C:\Users\Yuan>docker ps
+CONTAINER ID   IMAGE     COMMAND       CREATED        STATUS        PORTS     NAMES
+6c1b8d1a5ec9   py_test   "/bin/bash"   22 hours ago   Up 22 hours             cool_borg
+```
+	
+	
+	<p> &#129181 root@6c1b8d1a5ec9:/user/zhang# python python.py </p>
+	<p> &#129181 root@6c1b8d1a5ec9:/user/zhang# python "It will execute the python" </p>
+</div>	
+	
 	
 
 -----
