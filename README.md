@@ -29,6 +29,9 @@
 
 -----
 <div>	
+	<p align="center">
+   <img src="[YOUR_RAW_IMAGE_URL]" alt="[YOUR_ALT]"/>
+</p>
 	<a name="Docker compose"> <strong> &#129094 Docker compose </strong> </a>
 	<p> &#129181 Example: C:\Users\Yuan\Desktop\Python\docker>docker run -it py_test /bin/bash. "/bin/bash" allow you to access the internal files, for instance: root@6c1b8d1a5ec9:/user/zhang# ls </p>
 	<p> &#129181 root@6c1b8d1a5ec9:/user/zhang# python python.py </p>
