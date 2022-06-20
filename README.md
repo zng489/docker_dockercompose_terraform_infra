@@ -19,9 +19,8 @@
 <div>	
 	<a name="/bin/bash"> <strong> &#129094 "/bin/bash" </strong> </a>
 	<p> &#129181 Example: C:\Users\Yuan\Desktop\Python\docker>docker run -it py_test /bin/bash. "/bin/bash" allow you to access the internal files, for instance: root@6c1b8d1a5ec9:/user/zhang# ls </p>
-	<p> &#129181 python.py </p>
-	<p> &#129181 root@6c1b8d1a5ec9:/user/zhang# python </p>
-	<p> &#129181 Python 3.5.10 </p>
+	<p> &#129181 root@6c1b8d1a5ec9:/user/zhang# python python.py </p>
+	<p> &#129181 root@6c1b8d1a5ec9:/user/zhang# python "It will execute the python" </p>
 </div>	
 
 
