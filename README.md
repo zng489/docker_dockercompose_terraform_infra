@@ -14,14 +14,14 @@
 </ul>
 </h3>	
 	
-#############################################################################################
-	
-<div style="color: #000000; background-color: #ffffff">	
-	<a name="/bin/bash"> "/bin/bash" </a>
-	<p> Example: C:\Users\Yuan\Desktop\Python\docker>docker run -it py_test /bin/bash. "/bin/bash" allow you to access the internal files, for instance: root@6c1b8d1a5ec9:/user/zhang# ls </p>
-	<p> python.py </p>
-	<p> root@6c1b8d1a5ec9:/user/zhang# python </p>
-	<p> Python 3.5.10 </p>
+
+-----
+<div>	
+	<a name="/bin/bash"> <strong> &#129094 "/bin/bash" </strong> </a>
+	<p> &#129181 Example: C:\Users\Yuan\Desktop\Python\docker>docker run -it py_test /bin/bash. "/bin/bash" allow you to access the internal files, for instance: root@6c1b8d1a5ec9:/user/zhang# ls </p>
+	<p> &#129181 python.py </p>
+	<p> &#129181 root@6c1b8d1a5ec9:/user/zhang# python </p>
+	<p> &#129181 Python 3.5.10 </p>
 </div>	
 
 
