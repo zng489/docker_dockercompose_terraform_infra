@@ -117,8 +117,8 @@ cb535f2a7054
 
 	docker run -v /opt/datadir:/var/lib/mysql mysql
 ```
-	<img src="docker_1.png" alt="[YOUR_ALT]"/>
-	<img src="docker_2.png" alt="[YOUR_ALT]"/>
+<img src="docker_2.png" alt="[YOUR_ALT]"/>
+<img src="docker_3.png" alt="[YOUR_ALT]"/>
 
 --------------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------------
