@@ -12,8 +12,15 @@
 </li>
 	
 <li>
+	<a href="#Mapping and - v Volume"> PORT mapping - Volume mapping </a> 
+</li>
+	
+	
+<li>
 	<a href="#/bin/bash"> /bin/bash </a> 
 </li>
+	
+
 
 <li>
 	<a href="#Docker compose"> Docker compose </a> 
@@ -71,7 +78,6 @@ php                            apache            555bfcb74df2   6 months ago   4
 ```
 </div>
 
-
 --------------------------------------------------------------------------------------------------------------
 
 <div>	
@@ -84,11 +90,38 @@ docker rmi nginx
 cb535f2a7054	
 ```
 </div>	
+--------------------------------------------------------------------------------------------------------------
 
+<div>	
+	<a name="Mapping and - v Volume"> <strong> &#129094 # Run - PORT mapping # RUN - Volume mapping </strong> </a>
+	
+```
+	# Run - PORT mapping
+	
+	IP http://192.168.1.5:80 - PC
+	
+	Internal IP http://172.17.0.2:5000 - Docker
 
+	docker run -p 80:5000 kodekloud/simple-webapp
+	docker run -p 8000:5000 kodekloud/simple-webapp
+	docker run -p 8001:5000 kodekloud/simple-webapp
+	
+	# RUN - Volume mapping
+	docker run mysql
 
+	docker stop mysql
+	docker rm mysql
 
+	/opt/datadir - PC
+	/var/lib/mysql - Docker
 
+	docker run -v /opt/datadir:/var/lib/mysql mysql
+```
+	<img src="docker_1.png" alt="[YOUR_ALT]"/>
+	<img src="docker_2.png" alt="[YOUR_ALT]"/>
+
+--------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------
 
 
 <div>	
@@ -98,7 +131,14 @@ cb535f2a7054
 	<p> &#129181 root@6c1b8d1a5ec9:/user/zhang# python "It will execute the python" </p>
 </div>	
 
------
+--------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+--------------------------------------------------------------------------------------------------------------
+
 <div>	
 	<a name="Docker compose"> <strong> &#129094 Docker compose </strong> </a>
 	<p align="center">
