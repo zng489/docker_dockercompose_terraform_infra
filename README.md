@@ -20,7 +20,9 @@
 	<a href="#/bin/bash"> /bin/bash </a> 
 </li>
 	
-
+<li>
+	<a href="#Pull"> Pull </a> 
+</li>
 
 <li>
 	<a href="#Docker compose"> Docker compose </a> 
@@ -119,9 +121,9 @@ cb535f2a7054
 ```
 <img src="docker_2.png" alt="[YOUR_ALT]"/>
 <img src="docker_3.png" alt="[YOUR_ALT]"/>
+</div>
+--------------------------------------------------------------------------------------------------------------
 
---------------------------------------------------------------------------------------------------------------
---------------------------------------------------------------------------------------------------------------
 
 
 <div>	
@@ -131,13 +133,38 @@ cb535f2a7054
 	<p> &#129181 root@6c1b8d1a5ec9:/user/zhang# python "It will execute the python" </p>
 </div>	
 
---------------------------------------------------------------------------------------------------------------
+#############################################################################################
 
 
+<div>	
+	<a name="Pull"> <strong> &#129094 Pull </strong> </a>
+	
+```
+	Repository create: yuan28/pyspark
+		
+	Commando to push: C:\Users\Yuan>docker tag c402ee9c2d7f yuan28/pyspark:tagname <tagname> can be anything, it`s just ID created..
+
+	C:\Users\Yuan>docker images
+	REPOSITORY                 TAG       IMAGE ID       CREATED        SIZE
+	dbc2csv                    latest    66ae2082b35c   42 hours ago   617MB
+	jupyter/pyspark-notebook   latest    c402ee9c2d7f   2 days ago     3.32GB
+	zhang                      latest    15f58dab56b9   3 weeks ago    2.67GB
+
+	C:\Users\Yuan>docker push yuan28/pyspark:tagname <tagname> can be anything, it`s just ID created..
+	For instance: C:\Users\Yuan>docker push yuan28/pyspark:ZNG_PYSPARK
+```
+		
+```
+	# Pull - download an image
+	docker run nginx
+	docker pull nginx
+	use pull only to pull the image, not running		
+```
+
+</div>
 
 
-
---------------------------------------------------------------------------------------------------------------
+#############################################################################################
 
 <div>	
 	<a name="Docker compose"> <strong> &#129094 Docker compose </strong> </a>
@@ -149,8 +176,6 @@ cb535f2a7054
 
 
 
-
-	
 # Docker
 
 ```diff
