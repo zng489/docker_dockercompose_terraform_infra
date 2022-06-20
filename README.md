@@ -1,22 +1,30 @@
 
 <h3> 
-<a name="Summary"> Summary </a>   
-	
+	<a name="Summary"> Summary </a>   	
 <ul>
+	
 <li>
 	<a href="#COPY"> COPY </a> 
-	
 </li>
 	
-	
+<li>
+	<a href="#/bin/bash"> /bin/bash </a> 
+</li>
+
 </ul>
-	<a name="COPY"> COPY </a>
-	
 </h3>	
 	
+#############################################################################################
 	
-	
-	
+<div style="color: #000000; background-color: #ffffff">	
+	<a name="/bin/bash"> "/bin/bash" </a>
+	<p> Example: C:\Users\Yuan\Desktop\Python\docker>docker run -it py_test /bin/bash. "/bin/bash" allow you to access the internal files, for instance: root@6c1b8d1a5ec9:/user/zhang# ls </p>
+	<p> python.py </p>
+	<p> root@6c1b8d1a5ec9:/user/zhang# python </p>
+	<p> Python 3.5.10 </p>
+</div>	
+
+
 	
 # Docker
 
