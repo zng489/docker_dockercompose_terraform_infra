@@ -11,17 +11,36 @@
 	<a href="#/bin/bash"> /bin/bash </a> 
 </li>
 
+<li>
+	<a href="#Docker compose"> Docker compose </a> 
+</li>	
+
 </ul>
 </h3>	
 	
 
 -----
 <div>	
-	<a name="/bin/bash"> <strong> &#129094 "/bin/bash" </strong> </a>
+	<a name="/bin/bash"> <strong> &#129094 /bin/bash </strong> </a>
 	<p> &#129181 Example: C:\Users\Yuan\Desktop\Python\docker>docker run -it py_test /bin/bash. "/bin/bash" allow you to access the internal files, for instance: root@6c1b8d1a5ec9:/user/zhang# ls </p>
 	<p> &#129181 root@6c1b8d1a5ec9:/user/zhang# python python.py </p>
 	<p> &#129181 root@6c1b8d1a5ec9:/user/zhang# python "It will execute the python" </p>
 </div>	
+
+-----
+<div>	
+	<a name="Docker compose"> <strong> &#129094 Docker compose </strong> </a>
+	<p> &#129181 Example: C:\Users\Yuan\Desktop\Python\docker>docker run -it py_test /bin/bash. "/bin/bash" allow you to access the internal files, for instance: root@6c1b8d1a5ec9:/user/zhang# ls </p>
+	<p> &#129181 root@6c1b8d1a5ec9:/user/zhang# python python.py </p>
+	<p> &#129181 root@6c1b8d1a5ec9:/user/zhang# python "It will execute the python" </p>
+</div>
+
+
+
+
+
+
+
 
 
 	
