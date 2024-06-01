@@ -3,3 +3,5 @@ docker tag jupyterlab yuan28/jupyterzhang:v1.0
 docker push yuan28/jupyterzhang:v1.0
 
 yuan28 it`s necessary, cause it need a username
+
+# https://www.youtube.com/watch?v=f2sDOaOzKPM&ab_channel=ProgrammingKnowledge
