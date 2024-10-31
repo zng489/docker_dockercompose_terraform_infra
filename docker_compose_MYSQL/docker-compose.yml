@@ -1,0 +1,17 @@
+version: "3"
+services:
+  mysqldb:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: helloworld
+      MYSQL_DATABASE: testdb
+    container_name: mysql_container_test
+    ports:
+      - 3306:3306
+    networks:
+      - backend
+networks:
+  backend:
+    driver: "bridge"
+
+
