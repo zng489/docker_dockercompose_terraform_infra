@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  dremio:
+    image: dremio/dremio-oss:latest
+    ports:
+      - "9047:9047"      # Web UI
+      - "31010:31010"    # Client connections
+      - "45678:45678"    # Inter-node communication
+    volumes:
+      - dremio_data:/opt/dremio/data
+      - dremio_conf:/opt/dremio/conf
+    environment:
+      - DREMIO_MAX_MEMORY_SIZE_MB=4096
+      - DREMIO_MAX_DIRECT_MEMORY_SIZE_MB=2048
+      - TZ=UTC
+    restart: unless-stopped
+    networks:
+      - dremio_net
+
+volumes:
+  dremio_data:
+  dremio_conf:
+
+networks:
+  dremio_net:
+    driver: bridge
