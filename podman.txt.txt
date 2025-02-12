@@ -1,0 +1,54 @@
+System variables
+C:\Program Files\RedHat\Podman\
+
+podman 
+>podman build . --tag apache/airflow:2.6.0
+docker build . --tag apache/airflow:2.10.1
+
+docker build . --tag apache/airflow:2.6.0
+pip3 install podman-compose
+docker-compose up
+
+
+
+
+
+
+
+
+webserver-1     | [2024-10-03T16:11:59.269+0000] {providers_manager.py:282} INFO - Optional provider feature disabled when importing 'airflow.providers.google.leveldb.hooks.leveldb.LevelDBHook' from 'apache-airflow-providers-google' package
+webserver-1     | /home/airflow/.local/lib/python3.12/site-packages/azure/batch/models/_models_py3.py:4839 SyntaxWarning: invalid escape sequence '\s'
+webserver-1     | /home/airflow/.local/lib/python3.12/site-packages/azure/synapse/artifacts/models/_models_py3.py:175 SyntaxWarning: invalid escape sequence '\d'
+webserver-1     | /home/airflow/.local/lib/python3.12/site-packages/azure/synapse/artifacts/models/_models_py3.py:222 SyntaxWarning: invalid escape sequence '\d'
+webserver-1     | /home/airflow/.local/lib/python3.12/site-packages/azure/synapse/artifacts/models/_models_py3.py:1151 SyntaxWarning: invalid escape sequence '\d'sequence '\d'
+webserver-1     | [2024-10-03T16:12:07.543+0000] {providers_manager.py:291} WARNING - Exception when importing 'airflow.providers.microsoft.azure.hooks.powerbi.PowerBIHook' from 'apache-airflow-providers-microsoft-azure' package
+webserver-1     | Traceback (most recent call last):
+webserver-1     |   File "/home/airflow/.local/lib/python3.12/site-packages/airflow/providers_manager.py", line 322, in _correctness_check
+webserver-1     |     imported_class = import_string(class_name)
+webserver-1     |                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+webserver-1     |   File "/home/airflow/.local/lib/python3.12/site-packages/airflow/utils/module_loading.py", line 39, in import_string
+webserver-1     |     module = import_module(module_path)
+webserver-1     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+webserver-1     |   File "/usr/local/lib/python3.12/importlib/__init__.py", line 90, in import_module
+webserver-1     |     return _bootstrap._gcd_import(name[level:], package, level)
+webserver-1     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+webserver-1     |   File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+webserver-1     |   File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+webserver-1     |   File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+webserver-1     |   File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+webserver-1     |   File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+webserver-1     |   File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+webserver-1     |   File "/home/airflow/.local/lib/python3.12/site-packages/airflow/providers/microsoft/azure/hooks/powerbi.py", line 24, in <module>
+webserver-1     |     from airflow.providers.microsoft.azure.hooks.msgraph import KiotaRequestAdapterHook
+webserver-1     |   File "/home/airflow/.local/lib/python3.12/site-packages/airflow/providers/microsoft/azure/hooks/msgraph.py", line 38, in <module>
+webserver-1     |     from kiota_http.httpx_request_adapter import HttpxRequestAdapter
+webserver-1     |   File "/home/airflow/.local/lib/python3.12/site-packages/kiota_http/httpx_request_adapter.py", line 35, in <module>
+webserver-1     |     from kiota_http.middleware.parameters_name_decoding_handler import ParametersNameDecodingHandler
+webserver-1     |   File "/home/airflow/.local/lib/python3.12/site-packages/kiota_http/middleware/__init__.py", line 1, in <module>
+webserver-1     |     from .async_kiota_transport import AsyncKiotaTransport
+webserver-1     |   File "/home/airflow/.local/lib/python3.12/site-packages/kiota_http/middleware/async_kiota_transport.py", line 3, in <module>
+webserver-1     |     from .middleware import MiddlewarePipeline
+webserver-1     |   File "/home/airflow/.local/lib/python3.12/site-packages/kiota_http/middleware/middleware.py", line 14, in <module>
+webserver-1     |     class MiddlewarePipeline():
+webserver-1     |   File "/home/airflow/.local/lib/python3.12/site-packages/kiota_http/middleware/middleware.py", line 20, in MiddlewarePipeline
+webserver-1     |     def __init__(self, transport: httpx.AsyncBaseTransport):

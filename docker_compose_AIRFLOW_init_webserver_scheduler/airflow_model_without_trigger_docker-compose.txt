@@ -1,0 +1,130 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - connection
+
+  airflow-init:
+    image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.10.1}
+    command: bash -c "
+      airflow db init &&
+      airflow users create
+        --username admin
+        --password admin
+        --firstname Anonymous
+        --lastname Admin
+        --role Admin
+        --email admin@example.com"
+
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - connection
+
+  webserver:
+    image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.10.1}
+    command: webserver
+    environment:
+      #- LOAD_EX=y
+      #- AIRFLOW__CORE__LOAD_EXAMPLES=True
+      #- PYTHONWARNINGS=ignore::SyntaxWarning
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth  # Updated this line
+      - AIRFLOW__WEBSERVER__SECRET_KEY=this_is_a_very_secured_key
+      - AIRFLOW__WEBSERVER__WORKERS=1
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./dbt:/opt/airflow/dbt
+      - ./requirements.txt:/opt/airflow/requirements.txt
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    networks:
+      - connection
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  scheduler:
+    image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.10.1}
+    command: scheduler
+    environment:
+      #- LOAD_EX=y
+      #- AIRFLOW__CORE__LOAD_EXAMPLES=True
+      #- PYTHONWARNINGS=ignore::SyntaxWarning
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      - AIRFLOW__WEBSERVER__SECRET_KEY=this_is_a_very_secured_key
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./dbt:/opt/airflow/dbt
+      - ./requirements.txt:/opt/airflow/requirements.txt
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    networks:
+      - connection
+    healthcheck:
+      test: ["CMD", "airflow db check"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+networks:
+  connection:
+    driver: "bridge"
+
+volumes:
+  postgres-db-volume:
+
+
+
+"""
+    airflow-triggerer:
+    image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.10.1}
+    command: triggerer
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor  # Ensure the triggerer uses LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      - AIRFLOW__WEBSERVER__SECRET_KEY=this_is_a_very_secured_key
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+      scheduler:
+        condition: service_healthy  # Ensure the scheduler is healthy before starting the triggerer
+    networks:
+      - connection
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+"""
