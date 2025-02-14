@@ -1,0 +1,15 @@
+version: "3"
+services:
+  postgresdb:
+    image: postgres:13
+    environment:
+      POSTGRES_PASSWORD: guest
+      POSTGRES_DB: guestdb
+    container_name: postgres_container_test
+    ports:
+      - 5432:5432
+    networks:
+      - backend
+networks:
+  backend:
+    driver: "bridge"

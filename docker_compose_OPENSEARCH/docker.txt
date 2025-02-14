@@ -1,0 +1,305 @@
+docker run -d --name opensearch -e "discovery.type=single-node" -p 9200:9200 -p 9600:9600 opensearchproject/opensearch:2.10.0
+
+docker run -d -p 9200:9200 -p 9600:9600 -e "discovery.type=single-node" opensearchproject/opensearch:latest
+
+ # Password requires a minimum of 8 characters and must contain at least one uppercase letter, one lowercase letter, one digit, and one special character. Password strength can be tested here: https://lowe.github.io/tryzxcvbn
+docker run -d -p 9200:9200 -p 9600:9600 -e "discovery.type=single-node" -e "OPENSEARCH_INITIAL_ADMIN_PASSWORD=J!x2Vb9z*" opensearchproject/opensearch:latest
+
+
+https://forum.opensearch.org/t/unable-to-connect-to-opensearch-by-python-client-to-the-ingress-with-subpath/20694/2
+
+
+version: '3'
+services:
+  opensearch-node1: # Este é o único nó ativo
+    image: opensearchproject/opensearch:latest
+    container_name: opensearch-node1
+    environment:
+      - cluster.name=opensearch-cluster
+      - node.name=opensearch-node1
+      - discovery.seed_hosts=opensearch-node1 # Apenas um nó, então ele se descobrirá a partir dele mesmo
+      - cluster.initial_cluster_manager_nodes=opensearch-node1 # Apenas um nó inicial de cluster manager
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=J!x2Vb9z*
+      - network.host=0.0.0.0  # Permite acesso dentro da rede Docker
+      - network.publish_host=127.0.0.1  # Publica externamente apenas em localhost
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch-data1:/usr/share/opensearch/data
+    ports:
+      - 9200:9200
+      - 9600:9600
+    networks:
+      - opensearch-net
+
+  # opensearch-node2: # Comentado para manter apenas 1 nó
+  #   image: opensearchproject/opensearch:latest
+  #   container_name: opensearch-node2
+  #   environment:
+  #     - cluster.name=opensearch-cluster
+  #     - node.name=opensearch-node2
+  #     - discovery.seed_hosts=opensearch-node1,opensearch-node2
+  #     - cluster.initial_cluster_manager_nodes=opensearch-node1,opensearch-node2
+  #     - bootstrap.memory_lock=true
+  #     - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+  #     - OPENSEARCH_INITIAL_ADMIN_PASSWORD=J!x2Vb9z*
+  #   ulimits:
+  #     memlock:
+  #       soft: -1
+  #       hard: -1
+  #     nofile:
+  #       soft: 65536
+  #       hard: 65536
+  #   volumes:
+  #     - opensearch-data2:/usr/share/opensearch/data
+  #   networks:
+  #     - opensearch-net
+
+  opensearch-dashboards: # OpenSearch Dashboards ativo
+    image: opensearchproject/opensearch-dashboards:latest
+    container_name: opensearch-dashboards
+    ports:
+      - 5601:5601
+    expose:
+      - "5601"
+    environment:
+      OPENSEARCH_HOSTS: '["https://opensearch-node1:9200"]' # Aponta para o único nó ativo
+    networks:
+      - opensearch-net
+
+volumes:
+  opensearch-data1:
+
+networks:
+  opensearch-net:
+
+
+
+##############################################################################################
+
+
+
+
+
+
+# Docker Compose para OpenSearch com single node e Dashboard
+version: '3'
+services:
+  # Nó principal do OpenSearch
+  opensearch-node1:
+    image: opensearchproject/opensearch:latest
+    container_name: opensearch-node1
+    environment:
+      # Configurações básicas do cluster
+      - cluster.name=opensearch-cluster
+      - node.name=opensearch-node1
+      - discovery.seed_hosts=opensearch-node1
+      - cluster.initial_cluster_manager_nodes=opensearch-node1
+      
+      # Configurações de memória e sistema
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      
+      # Configurações de segurança
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+      - DISABLE_SECURITY_PLUGIN=false
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=J!x2Vb9z*
+      
+      # Configurações de rede
+      - network.host=0.0.0.0
+      - network.publish_host=127.0.0.1
+      
+      # Configurações SSL/TLS
+      - plugins.security.ssl.http.enabled=true
+      - plugins.security.ssl.transport.enabled=true
+      - plugins.security.ssl.http.pemcert_filepath=node1.pem
+      - plugins.security.ssl.http.pemkey_filepath=node1-key.pem
+      - plugins.security.ssl.transport.pemcert_filepath=node1.pem
+      - plugins.security.ssl.transport.pemkey_filepath=node1-key.pem
+    
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch-data1:/usr/share/opensearch/data
+      # - ./certs:/usr/share/opensearch/config/certificates  # Descomentar se usar certificados próprios
+    ports:
+      - 9200:9200  # REST API
+      - 9600:9600  # Performance Analyzer
+    networks:
+      - opensearch-net
+
+  # Segundo nó (comentado - descomentar se precisar de cluster)
+  # opensearch-node2:
+  #   image: opensearchproject/opensearch:latest
+  #   container_name: opensearch-node2
+  #   environment:
+  #     - cluster.name=opensearch-cluster
+  #     - node.name=opensearch-node2
+  #     - discovery.seed_hosts=opensearch-node1,opensearch-node2
+  #     - cluster.initial_cluster_manager_nodes=opensearch-node1
+  #     - bootstrap.memory_lock=true
+  #     - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+  #     - DISABLE_INSTALL_DEMO_CONFIG=true
+  #     - DISABLE_SECURITY_PLUGIN=false
+  #     - OPENSEARCH_INITIAL_ADMIN_PASSWORD=J!x2Vb9z*
+  #     - plugins.security.ssl.http.enabled=true
+  #     - plugins.security.ssl.transport.enabled=true
+  #     - plugins.security.ssl.http.pemcert_filepath=node2.pem
+  #     - plugins.security.ssl.http.pemkey_filepath=node2-key.pem
+  #     - plugins.security.ssl.transport.pemcert_filepath=node2.pem
+  #     - plugins.security.ssl.transport.pemkey_filepath=node2-key.pem
+  #   ulimits:
+  #     memlock:
+  #       soft: -1
+  #       hard: -1
+  #     nofile:
+  #       soft: 65536
+  #       hard: 65536
+  #   volumes:
+  #     - opensearch-data2:/usr/share/opensearch/data
+  #     # - ./certs:/usr/share/opensearch/config/certificates
+  #   networks:
+  #     - opensearch-net
+
+  # OpenSearch Dashboards
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:latest
+    container_name: opensearch-dashboards
+    ports:
+      - 5601:5601
+    expose:
+      - "5601"
+    environment:
+      - OPENSEARCH_HOSTS=https://opensearch-node1:9200
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=false
+      # Configurações de segurança do Dashboard
+      - OPENSEARCH_SSL_VERIFICATIONMODE=none
+      - OPENSEARCH_USERNAME=admin
+      - OPENSEARCH_PASSWORD=J!x2Vb9z*
+    networks:
+      - opensearch-net
+
+volumes:
+  opensearch-data1:
+  # opensearch-data2:  # Descomentar se usar o segundo nó
+
+networks:
+  opensearch-net:
+    driver: bridge
+
+
+
+
+1. Certifique-se de ter o Docker instalado
+Primeiro, você precisa ter o Docker instalado na sua máquina. Você pode verificar se o Docker está instalado corretamente executando:
+
+bash
+Copiar
+docker --version
+Se não estiver instalado, siga as instruções no site oficial do Docker para instalar o Docker.
+
+2. Baixe a imagem do OpenSearch
+O OpenSearch tem imagens oficiais no Docker Hub. Para começar, você pode baixar a imagem oficial do OpenSearch executando o seguinte comando:
+
+bash
+Copiar
+docker pull opensearchproject/opensearch:2.10.0
+Isso irá baixar a versão mais recente da imagem opensearch (no exemplo acima, a versão é a 2.10.0).
+
+3. Execute o OpenSearch no Docker
+Agora, você pode rodar o OpenSearch como um contêiner. Um exemplo básico de como rodá-lo seria:
+
+bash
+Copiar
+docker run -d --name opensearch \
+  -e "discovery.type=single-node" \
+  -p 9200:9200 \
+  -p 9600:9600 \
+  opensearchproject/opensearch:2.10.0
+Explicação dos parâmetros:
+-d: Executa o contêiner em segundo plano.
+--name opensearch: Nomeia o contêiner como "opensearch".
+-e "discovery.type=single-node": Configura o OpenSearch para rodar como um único nó (útil para desenvolvimento ou testes).
+-p 9200:9200: Mapeia a porta 9200 do contêiner para a porta 9200 da sua máquina local (para acessar a API REST do OpenSearch).
+-p 9600:9600: Mapeia a porta 9600 para o plugin de monitoramento do OpenSearch.
+opensearchproject/opensearch:2.10.0: A imagem do OpenSearch que você puxou.
+4. Verifique se o OpenSearch está funcionando
+Após iniciar o contêiner, você pode verificar se o OpenSearch está funcionando corretamente acessando a URL http://localhost:9200 no seu navegador ou utilizando o curl:
+
+bash
+Copiar
+curl http://localhost:9200
+Você deve ver uma resposta JSON contendo informações sobre o nó do OpenSearch.
+
+5. Parar e remover o contêiner
+Para parar o contêiner do OpenSearch:
+
+bash
+Copiar
+docker stop opensearch
+E para remover o contêiner:
+
+bash
+Copiar
+docker rm opensearch
+6. Usando o OpenSearch Dashboards (Opcional)
+O OpenSearch também tem uma interface de usuário chamada OpenSearch Dashboards, que é semelhante ao Kibana. Para usá-lo com Docker, você pode usar o seguinte comando:
+
+bash
+Copiar
+docker run -d --name opensearch-dashboards \
+  -e "OPENSEARCH_HOSTS=http://opensearch:9200" \
+  -p 5601:5601 \
+  opensearchproject/opensearch-dashboards:2.10.0
+Esse comando cria um contêiner para o OpenSearch Dashboards e o conecta ao contêiner do OpenSearch. O OpenSearch Dashboards estará acessível em http://localhost:5601.
+
+7. Usando Docker Compose (Opcional)
+Se você deseja usar Docker Compose para facilitar a configuração de múltiplos contêineres, como o OpenSearch e o OpenSearch Dashboards, pode criar um arquivo docker-compose.yml com o seguinte conteúdo:
+
+yaml
+Copiar
+version: '3'
+services:
+  opensearch:
+    image: opensearchproject/opensearch:2.10.0
+    environment:
+      - discovery.type=single-node
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    networks:
+      - opensearch-net
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.10.0
+    environment:
+      - OPENSEARCH_HOSTS=http://opensearch:9200
+    ports:
+      - "5601:5601"
+    networks:
+      - opensearch-net
+
+networks:
+  opensearch-net:
+    driver: bridge
+Depois, basta rodar o Docker Compose:
+
+bash
+Copiar
+docker-compose up -d
+Isso irá iniciar os dois contêineres (OpenSearch e OpenSearch Dashboards) com uma rede compartilhada entre eles.
+
+Conclusão
+Com esses passos, você já consegue rodar o OpenSearch e o OpenSearch Dashboards usando Docker! Se precisar de mais alguma configuração ou tiver dúvidas sobre o processo, fique à vontade para perguntar.
