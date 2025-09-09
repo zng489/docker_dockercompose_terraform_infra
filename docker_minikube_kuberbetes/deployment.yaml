@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-on-kube
+  labels:
+    app: python-on-kube
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: python-on-kube
+  template:
+    metadata:
+      labels:
+        app: python-on-kube
+    spec:
+      containers:
+      - name: python-on-kube
+        image: python-on-kube
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5000
+        # Recursos opcionais:
+        # resources:
+        #   limits:
+        #     memory: 512Mi
+        #     cpu: "1"
+        #   requests:
+        #     memory: 256Mi
+        #     cpu: "0.1"
