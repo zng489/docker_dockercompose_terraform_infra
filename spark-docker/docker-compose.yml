@@ -1,0 +1,569 @@
+# ══════════════════════════════════════════════════════════════════════
+# DOCKER COMPOSE — CLUSTER SPARK + HDFS
+# ══════════════════════════════════════════════════════════════════════
+#
+# Docker Compose é uma ferramenta que define e gerencia
+# MÚLTIPLOS containers como uma unidade (um "stack").
+#
+# Sem Compose: você rodaria 6 comandos "docker run" separados,
+# cada um com ~10 flags. Compose centraliza tudo em 1 arquivo.
+#
+# Arquitetura do cluster:
+#
+#   ┌─────────────┐     ┌──────────────┐     ┌──────────────┐
+#   │   Jupyter    │────▶│ Spark Master │────▶│  Worker 1    │
+#   │  (Driver)    │     │  (Scheduler) │────▶│  Worker 2    │
+#   └─────────────┘     └──────────────┘     └──────────────┘
+#                              │
+#   ┌──────────────┐     ┌──────────────┐
+#   │ HDFS DataNode│◀───▶│HDFS NameNode │
+#   │  (Blocos)    │     │  (Índice)    │
+#   └──────────────┘     └──────────────┘
+#
+# Comandos:
+#   docker compose up -d --build   → builda imagens e sobe tudo
+#   docker compose down            → para e remove containers
+#   docker compose down -v         → idem + apaga volumes (HDFS!)
+#   docker compose logs -f         → mostra logs em tempo real
+#   docker compose ps              → lista containers e status
+# ══════════════════════════════════════════════════════════════════════
+
+# services: → lista de containers que compõem o stack.
+# Cada item abaixo vira um container Docker separado.
+services:
+
+  # ── SPARK MASTER ────────────────────────────────────────────────────
+  #
+  # Papel do Master:
+  #   - Receber jobs de clientes (Jupyter, spark-submit)
+  #   - Dividir cada job em tarefas menores
+  #   - Alocar tarefas nos Workers disponíveis
+  #   - Monitorar progresso e falhas
+  #   - NÃO processa dados (é apenas o coordenador)
+  spark-master:
+
+    # build: ./spark → diz ao Compose para CONSTRUIR a imagem
+    #   a partir do Dockerfile em ./spark/Dockerfile.
+    #
+    # Diferente de "image:" que baixa uma imagem pronta do Docker Hub.
+    # Com "build:", o Compose roda "docker build ./spark" automaticamente.
+    #
+    # Se você mudar o Dockerfile, precisa rodar:
+    #   docker compose up -d --build
+    # para reconstruir a imagem.
+    #build: ./spark
+    image: spark-custom:latest
+    # container_name → nome fixo para o container.
+    #   Sem isso, o Compose gera nomes como "cluster-spark-master-1".
+    #   Com nome fixo: "docker logs spark-master" funciona direto.
+    #   TAMBÉM é o hostname DNS na rede interna (spark-net).
+    #   Workers usam "spark-master" para se conectar.
+    container_name: spark-master
+
+    # command → substitui o CMD do Dockerfile.
+    #   O ENTRYPOINT (tini --) permanece; o command é passado como argumento.
+    #   Container executa: tini -- spark-class org.apache.spark.deploy.master.Master
+    #
+    # spark-class → script launcher do Spark.
+    #   Configura classpath, JVM options, e executa a classe Java especificada.
+    #
+    # org.apache.spark.deploy.master.Master → classe Java do Spark Master.
+    #   Inicia o processo que escuta na porta 7077 (RPC) e 8080 (UI).
+    command: ["spark-class", "org.apache.spark.deploy.master.Master"]
+
+    # environment → variáveis de ambiente injetadas no container.
+    #   Equivalente a "docker run -e SPARK_LOG_LEVEL=WARN".
+    #
+    # SPARK_LOG_LEVEL=WARN
+    #   Controla a verbosidade dos logs do Spark.
+    #   Níveis (do mais ao menos verboso):
+    #     TRACE → DEBUG → INFO → WARN → ERROR → FATAL
+    #   INFO (padrão) mostra TUDO: cada tarefa, cada byte lido, cada shuffle.
+    #   WARN mostra apenas avisos e erros → logs limpos para desenvolvimento.
+    environment:
+      - SPARK_LOG_LEVEL=WARN
+
+    # ports → mapeia portas do container para o host.
+    #   Formato: "HOST:CONTAINER"
+    #
+    # "8080:8080"
+    #   O Spark Master escuta na porta 8080 DENTRO do container.
+    #   Mapeia para 8080 no host → acessível via http://localhost:8080
+    #   Mostra: Workers registrados, jobs em execução, métricas.
+    #
+    # "7077:7077"
+    #   Porta RPC (Remote Procedure Call) do Spark.
+    #   Workers se registram aqui: spark://spark-master:7077
+    #   Clientes enviam jobs aqui.
+    #   Protocolo binário proprietário do Spark (não HTTP).
+    #   Exposta no host para permitir spark-submit externo (opcional).
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+
+    # volumes → monta diretórios do host dentro do container.
+    #   Formato: "CAMINHO_HOST:CAMINHO_CONTAINER"
+    #   Isso é um "bind mount" — mapeamento direto de diretório.
+    #
+    # ./data:/opt/spark/data
+    #   Qualquer arquivo em ./data no seu computador aparece
+    #   em /opt/spark/data dentro do container (e vice-versa).
+    #   Mudanças são refletidas em tempo real nos dois lados.
+    #   Usado para: datasets de entrada, arquivos Parquet, CSVs.
+    #
+    # ./delta-lake:/opt/spark/delta-lake
+    #   Pasta dedicada para tabelas Delta Lake.
+    #   Delta Lake salva dados como arquivos Parquet + logs de transação.
+    #   Separar de ./data mantém a organização.
+    volumes:
+      - ./data:/opt/spark/data
+      - ./delta-lake:/opt/spark/delta-lake
+
+    # networks → redes virtuais que este container participa.
+    #   Todos os containers do cluster devem estar na mesma rede.
+    #   Sem rede compartilhada, containers não se enxergam.
+    networks:
+      - spark-net
+
+  # ── SPARK WORKER 1 ──────────────────────────────────────────────────
+  #
+  # Papel do Worker:
+  #   - EXECUTAR as tarefas que o Master distribui
+  #   - Processar dados em paralelo (transformações, agregações)
+  #   - Armazenar resultados intermediários (shuffle data)
+  #   - Reportar status ao Master via heartbeat
+  #
+  # Analogia:
+  #   Master = gerente de obra (distribui tarefas)
+  #   Worker = pedreiro (faz o serviço)
+  spark-worker-1:
+    #build: ./spark
+    image: spark-custom:latest
+    container_name: spark-worker-1
+
+    # O último argumento (spark://spark-master:7077) é o endereço do Master.
+    #
+    # Quando o Worker inicia:
+    #   1. Resolve "spark-master" via DNS do Docker → IP interno
+    #   2. Conecta na porta 7077 (RPC)
+    #   3. Envia mensagem de registro: "sou Worker, tenho 2 cores e 3GB"
+    #   4. Master adiciona Worker à lista de recursos disponíveis
+    #   5. Worker fica aguardando tarefas
+    command: ["spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
+
+    environment:
+      # SPARK_WORKER_MEMORY=3g
+      #   RAM máxima que este Worker OFERECE para jobs.
+      #   Não é RAM reservada — é o limite que o Worker reporta ao Master.
+      #   O Master não vai alocar mais que 3GB de tarefas neste Worker.
+      #   Se um job pedir 5GB, o Master usa 2 Workers.
+      #   "g" = gigabytes. Aceita também "m" (megabytes).
+      - SPARK_WORKER_MEMORY=3g
+
+      # SPARK_WORKER_CORES=2
+      #   Número de cores de CPU que este Worker disponibiliza.
+      #   Cada task do Spark usa 1 core por padrão.
+      #   2 cores = este Worker executa até 2 tasks simultaneamente.
+      #   Mais tasks por Worker = mais paralelismo, mas cada task tem menos CPU.
+      - SPARK_WORKER_CORES=2
+      - SPARK_LOG_LEVEL=WARN
+
+    # "8081:8081" → UI individual deste Worker.
+    #   Mostra: tasks em execução, memória usada, logs de executors.
+    #   Útil para debugar problemas de performance em um Worker específico.
+    ports:
+      - "8081:8081"
+
+    volumes:
+      - ./data:/opt/spark/data
+      - ./delta-lake:/opt/spark/delta-lake
+
+    # depends_on → define ordem de inicialização.
+    #   O Worker SÓ inicia DEPOIS que o Master estiver rodando.
+    #
+    #   ⚠️ depends_on verifica apenas se o container INICIOU,
+    #   não se o processo dentro dele está PRONTO.
+    #   O Worker pode iniciar antes do Master estar escutando na 7077.
+    #   Mas o Worker faz retry automático, então funciona.
+    #
+    #   Para garantia total: use healthcheck + condition: service_healthy.
+    depends_on:
+      - spark-master
+
+    networks:
+      - spark-net
+
+  # ── SPARK WORKER 2 ──────────────────────────────────────────────────
+  #
+  # Cópia exata do Worker 1, mas em container separado.
+  #
+  # Por que 2 Workers?
+  #   - Simula um cluster real (produção tem dezenas/centenas)
+  #   - Permite paralelismo real: Worker 1 e Worker 2 processam
+  #     partições diferentes dos dados ao mesmo tempo
+  #   - Total: 4 cores + 6GB disponíveis para jobs
+  spark-worker-2:
+    #build: ./spark
+    image: spark-custom:latest
+    container_name: spark-worker-2
+    command: ["spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
+    environment:
+      - SPARK_WORKER_MEMORY=3g
+      - SPARK_WORKER_CORES=2
+      - SPARK_LOG_LEVEL=WARN
+
+    # "8082:8081" → mapeamento com porta diferente no host.
+    #
+    #   CONTAINER: escuta em 8081 (padrão do Worker, não muda)
+    #   HOST: mapeia para 8082 (porque 8081 já é do Worker 1)
+    #
+    #   Dentro da rede Docker: spark-worker-2:8081 funciona normalmente.
+    #   No seu browser: http://localhost:8082
+    #
+    #   Se usasse "8081:8081", Docker daria erro:
+    #     "Bind for 0.0.0.0:8081 failed: port is already allocated"
+    ports:
+      - "8082:8081"
+
+    volumes:
+      - ./data:/opt/spark/data
+      - ./delta-lake:/opt/spark/delta-lake
+    depends_on:
+      - spark-master
+    networks:
+      - spark-net
+
+  # ── JUPYTER + PYSPARK ───────────────────────────────────────────────
+  #
+  # Interface interativa onde você escreve código PySpark.
+  #
+  # O Jupyter é o DRIVER do Spark:
+  #   - Cria o SparkSession (conexão com o cluster)
+  #   - Serializa suas funções Python
+  #   - Envia para o Master, que distribui para Workers
+  #   - Recebe resultados e mostra no notebook
+  #
+  # Fluxo:
+  #   Você (browser) → Jupyter (container) → Spark Master → Workers
+  #                                                         ↓
+  #   Resultado no notebook ← Jupyter ← Spark Master ← Workers
+  jupyter:
+    #build: ./jupyter
+    image: jupyter:latest 
+    container_name: jupyter
+
+    environment:
+      # PYSPARK_SUBMIT_ARGS → argumentos passados automaticamente
+      #   quando PySpark cria um SparkSession.
+      #
+      # É equivalente a rodar:
+      #   spark-submit --master spark://spark-master:7077 \
+      #                --packages io.delta:delta-spark_2.12:3.1.0 \
+      #                pyspark-shell
+      #
+      # Detalhamento:
+      #
+      # --master spark://spark-master:7077
+      #   Diz ao PySpark para se conectar ao cluster remoto.
+      #   Sem isso, PySpark roda em "local mode" (usa apenas o container Jupyter).
+      #   Com isso, as tarefas são executadas nos Workers do cluster.
+      #
+      # --packages io.delta:delta-spark_2.12:3.1.0
+      #   Baixa automaticamente o JAR do Delta Lake do Maven Central.
+      #   Formato: groupId:artifactId:version
+      #     io.delta       → organização/empresa (Delta Lake project)
+      #     delta-spark    → nome do artefato
+      #     _2.12          → compilado para Scala 2.12 (Spark 3.5 usa Scala 2.12)
+      #     3.1.0          → versão do Delta Lake
+      #   Na primeira execução, baixa ~10MB de JARs para ~/.ivy2/
+      #   Nas execuções seguintes, usa cache.
+      #
+      # pyspark-shell
+      #   Modo de execução: shell interativo (REPL).
+      #   Necessário para funcionar com Jupyter.
+      #   Alternativa: "pyspark" (modo script, não interativo).
+      - PYSPARK_SUBMIT_ARGS=--master spark://spark-master:7077 --packages io.delta:delta-spark_2.12:3.1.0 pyspark-shell
+
+    ports:
+      # http://localhost:8888?token=spark123
+      - "8888:8888"
+
+    volumes:
+      # ./notebooks:/home/jovyan/work
+      #   Seus notebooks .ipynb ficam em ./notebooks no host.
+      #   O Jupyter mostra /home/jovyan/work como diretório raiz.
+      #   Se você destruir o container, os notebooks estão salvos.
+      - ./notebooks:/home/jovyan/work
+
+      # ./data e ./delta-lake → mesmos dados que Spark e HDFS acessam.
+      #   Permite ler/escrever arquivos locais diretamente do notebook.
+      - ./data:/home/jovyan/data
+      - ./delta-lake:/home/jovyan/delta-lake
+
+    depends_on:
+      - spark-master
+    networks:
+      - spark-net
+
+  # ── HDFS NAMENODE ───────────────────────────────────────────────────
+  #
+  # Papel do NameNode:
+  #   - Manter o NAMESPACE (índice) de todos os arquivos do HDFS
+  #   - Saber qual bloco de cada arquivo está em qual DataNode
+  #   - Gerenciar permissões, criação/exclusão de arquivos
+  #   - Coordenar replicação de blocos
+  #
+  # O que NÃO faz:
+  #   - NÃO armazena dados reais (apenas metadados)
+  #   - NÃO transfere dados entre clientes e DataNodes
+  #
+  # Se o NameNode perder seus dados → TODO o HDFS é perdido.
+  # (DataNodes têm os blocos, mas sem o índice não sabem o que é o quê)
+  hdfs-namenode:
+    #build: ./hadoop
+    image: hadoop:latest
+    container_name: hdfs-namenode
+
+    # entrypoint → substitui o ENTRYPOINT do Dockerfile.
+    #
+    # > (yaml folded scalar) → texto multi-linha colapsado em uma string.
+    #
+    # tini -- bash -c "..."
+    #   tini como PID 1 (mesmo padrão dos outros containers).
+    #   bash -c "..." executa o script inline.
+    #
+    # Lógica do script:
+    #
+    #   if [ ! -d /tmp/hadoop-root/dfs/name/current ]; then
+    #     → Verifica se o diretório "current" NÃO existe.
+    #     → "current" é criado pelo "hdfs namenode -format".
+    #     → Se NÃO existe = primeira execução = precisa formatar.
+    #
+    #   hdfs namenode -format -force
+    #     → "Formata" o namespace do HDFS (como formatar um HD).
+    #     → Cria a estrutura inicial de metadados (fsimage, edits).
+    #     → -force → não pede confirmação (Y/N) interativa.
+    #     → Deve rodar APENAS uma vez (na primeira execução).
+    #
+    #   fi; hdfs namenode
+    #     → Inicia o processo do NameNode.
+    #     → Fica escutando na porta 8020 (RPC) e 9870 (UI).
+    #     → Processo foreground (não retorna enquanto estiver rodando).
+    #
+    # Por que essa lógica condicional?
+    #   Sem ela:
+    #     1ª execução: formata + inicia → funciona ✓
+    #     2ª execução: tenta formatar de novo → SOBRESCREVE metadados ✗
+    #   Com ela:
+    #     1ª execução: current não existe → formata → inicia ✓
+    #     2ª execução: current existe → pula formato → inicia ✓
+    entrypoint: >
+      tini -- bash -c "
+        if [ ! -d /tmp/hadoop-root/dfs/name/current ]; then
+          hdfs namenode -format -force;
+        fi;
+        hdfs namenode
+      "
+
+    ports:
+      # 9870 → UI web do HDFS.
+      #   http://localhost:9870
+      #   Mostra: capacidade total, blocos, DataNodes ativos,
+      #   permite navegar pelos diretórios do HDFS.
+      - "9870:9870"
+
+      # 8020 → porta RPC (Inter-Process Communication).
+      #   DataNodes se registram aqui.
+      #   Clientes (Spark, hdfs dfs) se conectam aqui para operações de arquivo.
+      #   Protocolo: Hadoop RPC (binário, não HTTP).
+      - "8020:8020"
+
+    volumes:
+      # Volume NOMEADO (diferente de bind mount).
+      #
+      # Bind mount (./data:/opt/...):
+      #   → Pasta no SEU computador
+      #   → Você vê e edita os arquivos direto
+      #
+      # Volume nomeado (hdfs-namenode-data):
+      #   → Docker gerencia internamente
+      #   → Armazenado em /var/lib/docker/volumes/ (Linux)
+      #   → Você NÃO acessa direto pelo file explorer
+      #   → Melhor performance (especialmente Docker Desktop Mac/Windows)
+      #   → Ideal para dados internos de sistemas
+      #
+      # /tmp/hadoop-root/dfs/name → onde o NameNode salva:
+      #   - fsimage: snapshot do namespace (árvore de diretórios + metadados)
+      #   - edits: log de transações desde o último snapshot
+      #   - Juntos, permitem reconstruir o estado completo do HDFS
+      - hdfs-namenode-data:/tmp/hadoop-root/dfs/name
+
+    networks:
+      - spark-net
+
+  # ── HDFS DATANODE ───────────────────────────────────────────────────
+  #
+  # Papel do DataNode:
+  #   - Armazenar BLOCOS de dados fisicamente em disco
+  #   - Responder a leituras e escritas de clientes
+  #   - Enviar heartbeat ao NameNode a cada 3 segundos
+  #     ("estou vivo e tenho estes blocos: [lista]")
+  #   - Verificar integridade dos dados (checksums CRC32)
+  #   - Replicar blocos quando o NameNode pede
+  #
+  # Como os dados são armazenados:
+  #   Arquivo de 350MB → dividido em 3 blocos:
+  #     Bloco 1: 128MB → DataNode salva como arquivo no disco
+  #     Bloco 2: 128MB → idem
+  #     Bloco 3:  94MB → idem (último bloco pode ser menor)
+  #
+  #   Em produção (3 DataNodes, replicação 3):
+  #     Cada bloco existe em 3 DataNodes diferentes.
+  #     Se um DataNode morrer, os dados ainda existem em outros 2.
+  #
+  #   Aqui (1 DataNode, replicação 1):
+  #     Se o DataNode morrer, os dados se perdem.
+  #     OK para desenvolvimento; NUNCA faça isso em produção.
+  hdfs-datanode:
+    #build: ./hadoop
+    image: hadoop:latest
+    container_name: hdfs-datanode
+    restart: always
+    # Simples: apenas inicia o processo do DataNode.
+    # Não precisa de lógica condicional como o NameNode
+    # (DataNode não tem "format").
+    command: ["hdfs", "datanode"]
+    environment:
+      # CORE_CONF_fs_defaultFS → mecanismo do Docker Hadoop
+      #   para gerar configuração XML automaticamente.
+      #
+      # O Hadoop lê suas configs de arquivos XML:
+      #   core-site.xml, hdfs-site.xml, yarn-site.xml, etc.
+      #
+      # A imagem converte variáveis de ambiente em XML:
+      #   CORE_CONF_fs_defaultFS=hdfs://hdfs-namenode:8020
+      #   se transforma em (dentro de core-site.xml):
+      #     <configuration>
+      #       <property>
+      #         <name>fs.defaultFS</name>
+      #         <value>hdfs://hdfs-namenode:8020</value>
+      #       </property>
+      #     </configuration>
+      #
+      # Regra de conversão:
+      #   CORE_CONF_ → escreve em core-site.xml
+      #   HDFS_CONF_ → escreve em hdfs-site.xml
+      #   fs_defaultFS → substitui _ por . → fs.defaultFS
+      #
+      # fs.defaultFS = filesystem padrão do Hadoop.
+      #   hdfs:// → usa protocolo HDFS
+      #   hdfs-namenode → hostname do NameNode (resolvido via DNS Docker)
+      #   8020 → porta RPC do NameNode
+      #
+      # Sem essa configuração, o DataNode não sabe onde está o NameNode
+      # e não consegue se registrar.
+      - CORE_CONF_fs_defaultFS=hdfs://hdfs-namenode:8020
+
+    ports:
+      # 9864 → UI web do DataNode.
+      #   http://localhost:9864
+      #   Mostra: blocos armazenados, espaço em disco usado/disponível,
+      #   status da conexão com NameNode.
+      - "9864:9864"
+      - "9866:9866"
+
+
+
+
+    volumes:
+      # Persiste os blocos de dados entre restarts do container.
+      # /tmp/hadoop-root/dfs/data → diretório onde o DataNode salva blocos.
+      # Cada bloco é um arquivo binário no disco.
+      - hdfs-datanode-data:/tmp/hadoop-root/dfs/data
+
+    depends_on:
+      # DataNode precisa do NameNode para se registrar.
+      # Ao iniciar, DataNode envia bloco report:
+      #   "NameNode, sou DataNode X e tenho estes blocos: [lista]"
+      - hdfs-namenode
+
+    networks:
+      - spark-net
+
+# ══════════════════════════════════════════════════════════════════════
+# REDE VIRTUAL
+# ══════════════════════════════════════════════════════════════════════
+#
+# Docker cria uma rede virtual isolada chamada "spark-net".
+#
+# O que a rede faz:
+#   1. DNS interno: cada container é resolvido pelo nome.
+#      spark-worker-1 pode pingar "spark-master" pelo nome.
+#      Docker resolve para o IP interno (ex: 172.18.0.2).
+#
+#   2. Isolamento: containers fora dessa rede NÃO conseguem
+#      se comunicar com os de dentro.
+#
+#   3. Sem NAT interno: containers se comunicam diretamente,
+#      sem overhead de tradução de endereços.
+#
+# driver: bridge → tipo de rede mais comum.
+#   "bridge" cria uma rede virtual no host com interface própria.
+#   Containers ganham IPs privados (172.x.x.x).
+#   O host consegue acessar containers pelas portas publicadas.
+#   Outros computadores na rede NÃO conseguem (a menos que
+#   você configure o firewall do host).
+#
+# Alternativas:
+#   host    → container usa a rede do host diretamente (sem isolamento)
+#   overlay → rede entre múltiplos hosts Docker (Docker Swarm)
+#   none    → sem rede (container isolado)
+# ══════════════════════════════════════════════════════════════════════
+networks:
+  spark-net:
+    driver: bridge
+
+# ══════════════════════════════════════════════════════════════════════
+# VOLUMES NOMEADOS
+# ══════════════════════════════════════════════════════════════════════
+#
+# Volumes nomeados são gerenciados pelo Docker Engine.
+# Ficam armazenados em /var/lib/docker/volumes/<nome>/_data/
+#
+# Ciclo de vida:
+#   docker compose up    → cria volumes (se não existem)
+#   docker compose down  → containers removidos, volumes PRESERVADOS
+#   docker compose up    → reutiliza volumes existentes (dados intactos)
+#   docker compose down -v → remove containers E volumes (dados PERDIDOS)
+#
+# Para inspecionar:
+#   docker volume ls                    → lista todos os volumes
+#   docker volume inspect <nome>        → mostra metadados e caminho
+#
+# Para limpar volumes orfãos:
+#   docker volume prune                 → remove volumes não utilizados
+#
+# Comparação bind mount vs volume nomeado:
+#
+#   Bind mount (./data:/opt/spark/data):
+#     ✓ Você controla a pasta
+#     ✓ Editável no editor/IDE
+#     ✓ Visível no file explorer
+#     ✗ Performance pode ser ruim no Docker Desktop (Mac/Windows)
+#     → Bom para: dados de trabalho, código, notebooks
+#
+#   Volume nomeado (hdfs-namenode-data):
+#     ✓ Melhor performance (bypass do filesystem do host no Mac/Win)
+#     ✓ Docker gerencia backup e lifecycle
+#     ✗ Não acessível direto pelo explorer
+#     ✗ Precisa de "docker cp" para extrair dados
+#     → Bom para: dados internos de sistemas (DBs, caches, metadados)
+# ══════════════════════════════════════════════════════════════════════
+volumes:
+  # Metadados do HDFS: namespace completo, edit logs, fsimage.
+  # Se perder este volume, perde o índice de TODOS os arquivos do HDFS.
+  hdfs-namenode-data:
+
+  # Blocos de dados reais (arquivos divididos em chunks de 128MB).
+  # Se perder este volume, perde os dados armazenados no HDFS.
+  hdfs-datanode-data:
