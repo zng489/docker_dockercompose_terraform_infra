@@ -1,0 +1,126 @@
+# ══════════════════════════════════════════════════════════════════════
+# IMAGEM SPARK (usada pelo Master e Workers)
+# ══════════════════════════════════════════════════════════════════════
+#
+# Esta imagem é reutilizada por 3 containers:
+#   - spark-master (coordenador)
+#   - spark-worker-1 (executor)
+#   - spark-worker-2 (executor)
+#
+# O que muda entre eles é o COMMAND no docker-compose.yml,
+# não a imagem em si.
+# ══════════════════════════════════════════════════════════════════════
+
+# FROM → define a imagem base (ponto de partida).
+#
+# eclipse-temurin → distribuição oficial do OpenJDK (antes AdoptOpenJDK).
+#   Mantida pela Eclipse Foundation. É a mais usada em produção.
+#
+# 17 → Java 17 LTS (Long Term Support até 2029).
+#   Spark 3.5 suporta Java 8, 11 e 17.
+#
+# jre → Java Runtime Environment (apenas execução, sem compilador).
+#   Economia de ~200MB vs JDK completo.
+#
+# alpine → Linux ultra-leve (~5MB base).
+#   Usa musl libc + busybox em vez de glibc + coreutils.
+#
+# Tamanho desta base: ~180MB
+FROM eclipse-temurin:17-jre-alpine
+
+# ── Pacotes do sistema ──────────────────────────────────────────────
+#
+# RUN → executa comandos durante o BUILD da imagem.
+#   Cada RUN cria uma "layer" (camada).
+#
+# apk → gerenciador de pacotes do Alpine (equivalente ao apt do Ubuntu).
+#
+# --no-cache → não salva índice de pacotes (~10MB de economia).
+#
+# Pacotes:
+#   bash    → Spark precisa de bash (Alpine só tem sh por padrão).
+#             Scripts do Spark usam arrays, [[ ]], etc.
+#
+#   wget    → para baixar o Spark durante o build.
+#             Alternativa ao curl. Mais simples para downloads diretos.
+#
+#   procps  → comandos ps, top, free, pgrep, pkill.
+#             Alpine não tem por padrão. Essenciais para debug.
+#
+#   tini    → init process leve (24KB) que roda como PID 1.
+#             Garante que sinais (SIGTERM, SIGINT) cheguem ao processo Java.
+#             Sem tini: "docker stop" demora 10s (mata com SIGKILL).
+#             Com tini: para em <1s (repassa SIGTERM ao Java).
+RUN apk add --no-cache bash wget procps tini python3~=3.12 gcompat
+
+# ── Variáveis de ambiente ───────────────────────────────────────────
+#
+# ENV → define variáveis que existem no build E em runtime.
+#
+# SPARK_VERSION → centraliza a versão. Mudar aqui atualiza tudo.
+#
+# SPARK_HOME → convenção: softwares manuais ficam em /opt.
+#
+# PATH → adiciona binários do Spark ao PATH do sistema.
+#   Permite rodar "spark-class" em vez de "/opt/spark/bin/spark-class".
+ENV SPARK_VERSION=3.5.8
+ENV SPARK_HOME=/opt/spark
+ENV PATH="${SPARK_HOME}/bin:${SPARK_HOME}/sbin:${PATH}"
+ENV PYSPARK_PYTHON=python3
+
+# ── Download e instalação do Spark ──────────────────────────────────
+#
+# Tudo em um único RUN = 1 layer = imagem menor.
+#
+# wget → baixa o arquivo .tgz do CDN oficial do Apache.
+#   https://dlcdn.apache.org → CDN de alta velocidade para releases atuais.
+#   Se a versão sair do CDN, use https://archive.apache.org/dist/spark/
+#
+# tar xf → extrai o arquivo .tgz
+#   x = extract (extrair)
+#   f = file (ler de arquivo, não de stdin)
+#   Cria pasta spark-3.5.8-bin-hadoop3/
+#
+# mv → renomeia para /opt/spark (caminho limpo, sem versão no nome).
+#   Facilita referências e evita mudar configs ao atualizar versão.
+#
+# rm → apaga o .tgz para não ficar lixo na imagem (~400MB de economia).
+#
+# Tudo encadeado com && → se qualquer comando falhar, o build para.
+#   Se wget falhar → tar não executa → mv não executa → build falha.
+RUN wget https://dlcdn.apache.org/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.tgz \
+    && tar xf spark-${SPARK_VERSION}-bin-hadoop3.tgz \
+    && mv spark-${SPARK_VERSION}-bin-hadoop3 ${SPARK_HOME} \
+    && rm spark-${SPARK_VERSION}-bin-hadoop3.tgz
+
+# Depois do RUN que baixa e extrai o Spark...
+RUN wget -q https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar \
+         -O ${SPARK_HOME}/jars/hadoop-aws-3.3.4.jar && \
+    wget -q https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.777/aws-java-sdk-bundle-1.12.777.jar \
+         -O ${SPARK_HOME}/jars/aws-java-sdk-bundle-1.12.777.jar
+
+
+
+# ── Diretório de trabalho ───────────────────────────────────────────
+#
+# WORKDIR → diretório padrão ao entrar no container.
+#   "docker exec -it spark-master bash" cai direto em /opt/spark.
+#   Também é o diretório padrão para CMD e ENTRYPOINT.
+WORKDIR ${SPARK_HOME}
+
+# ── Entrypoint ──────────────────────────────────────────────────────
+#
+# ENTRYPOINT → comando que SEMPRE executa ao iniciar o container.
+#
+# ["tini", "--"] → formato exec (array JSON).
+#   tini roda como PID 1 e repassa sinais para o processo filho.
+#   "--" separa args do tini dos args do processo filho.
+#
+# O CMD real vem do docker-compose.yml:
+#   command: ["spark-class", "org.apache.spark.deploy.master.Master"]
+#
+# Container executa: tini -- spark-class org.apache.spark.deploy.master.Master
+#   tini vira PID 1, spark-class vira PID 2.
+#   Quando "docker stop" envia SIGTERM → tini repassa para spark-class.
+ENTRYPOINT ["tini", "--"]
+

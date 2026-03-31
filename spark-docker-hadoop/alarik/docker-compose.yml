@@ -1,0 +1,336 @@
+# ══════════════════════════════════════════════════════════════════════
+# DOCKER COMPOSE — ALARIK (Backend + Console)
+# ══════════════════════════════════════════════════════════════════════
+#
+# Este Compose gerencia o Alarik (S3-compatível) e seu Console web.
+# Os containers se conectam à rede EXTERNA do cluster Spark/HDFS,
+# permitindo que o Jupyter (PySpark) leia e escreva no Alarik
+# via protocolo S3A.
+#
+# Arquitetura:
+#
+#   ┌─────────────┐       ┌──────────────┐       ┌──────────────┐
+#   │   Browser    │──────▶│   Console    │──────▶│    Alarik    │
+#   │  (você)      │       │  (Frontend)  │       │  (Backend)   │
+#   └─────────────┘       └──────────────┘       └──────────────┘
+#        localhost:3005      container:3000       container:8080
+#                                                      ▲
+#   ┌─────────────┐                                    │
+#   │   Jupyter    │─────── S3A (http://alarik:8080) ──┘
+#   │  (PySpark)   │
+#   └─────────────┘
+#
+# Rede:
+#   spark-docker_spark-net (externa, criada pelo Compose do Spark)
+#
+# Comandos:
+#   docker compose up -d          → sobe Alarik e Console
+#   docker compose down           → para e remove containers
+#   docker compose down -v        → idem + apaga volumes (dados!)
+#   docker compose logs -f        → mostra logs em tempo real
+#   docker compose ps             → lista containers e status
+# ══════════════════════════════════════════════════════════════════════
+
+# services: → lista de containers que compõem este stack.
+# Cada item abaixo vira um container Docker separado.
+services:
+
+  # ── ALARIK (Backend) ────────────────────────────────────────────────
+  #
+  # API REST que implementa um servidor S3-compatível.
+  #
+  # O que faz:
+  #   - Gerencia buckets e objetos (como AWS S3, mas local)
+  #   - Autentica requisições via access key / secret key
+  #   - Armazena dados em disco dentro do container (/app/Storage)
+  #   - Expõe API S3 na porta 8080 (dentro do container)
+  #
+  # Por que o Spark acessa via S3A?
+  #   O Spark tem um conector nativo para S3 chamado S3AFileSystem.
+  #   Ele fala o protocolo S3 (HTTP REST) para ler e escrever dados.
+  #   Como o Alarik implementa esse protocolo, o Spark pode usar
+  #   o Alarik como se fosse um bucket S3 da AWS — sem precisar
+  #   de credenciais AWS reais.
+  #
+  # Fluxo de uma leitura Spark → Alarik:
+  #   1. PySpark: spark.read.parquet("s3a://meu-bucket/dados/")
+  #   2. S3AFileSystem envia GET para http://alarik:8080/meu-bucket/dados/
+  #   3. Alarik responde com os bytes do objeto
+  #   4. Spark deserializa Parquet e cria DataFrame
+  alarik:
+
+    # image → baixa a imagem pronta do GitHub Container Registry.
+    #
+    # ghcr.io → GitHub Container Registry (como Docker Hub, mas da GitHub).
+    # achtungsoftware → organização/autor da imagem.
+    # alarik → nome da imagem.
+    # :latest → tag da versão (sempre a mais recente).
+    #
+    # Diferente de "build:" que constrói localmente.
+    # Com "image:", o Compose faz "docker pull" automaticamente.
+    # Na primeira vez: baixa ~200MB. Depois: usa cache local.
+    image: ghcr.io/achtungsoftware/alarik:latest
+
+    # container_name → nome fixo para o container.
+    #   - Usado pelo DNS interno do Docker na rede spark-net
+    #   - Jupyter resolve "alarik" → IP interno do container
+    #   - Console acessa "alarik:8080" via rede interna
+    #   - Sem isso, o Compose geraria "alarik-alarik-1"
+    container_name: alarik
+
+    # restart: unless-stopped → política de reinício automático.
+    #
+    # Opções:
+    #   "no"              → nunca reinicia (padrão)
+    #   "always"          → reinicia SEMPRE (mesmo se você parou manualmente)
+    #   "on-failure"      → reinicia apenas se o processo saiu com erro
+    #   "unless-stopped"  → reinicia se cair, MAS não se você parou manualmente
+    #
+    # unless-stopped é o melhor para desenvolvimento:
+    #   - Se o container crashar → reinicia sozinho
+    #   - Se você rodar "docker compose down" → não tenta subir de novo
+    restart: unless-stopped
+
+    # ports → mapeia portas do container para o host.
+    #   Formato: "HOST:CONTAINER"
+    #
+    # "8085:8080"
+    #   O Alarik escuta na porta 8080 DENTRO do container.
+    #   Mapeia para 8085 no host → http://localhost:8085
+    #
+    #   Por que 8085 e não 8080?
+    #     Spark Master já usa 8080 (UI do Spark Master).
+    #     Spark Worker 1 já usa 8081.
+    #     Spark Worker 2 já usa 8082.
+    #     8085 evita todos os conflitos.
+    #
+    #   ⚠️ Apenas o HOST acessa via 8085.
+    #   Containers na rede interna usam alarik:8080 (porta interna).
+    ports:
+      - "8085:8080"
+
+    # environment → variáveis de ambiente injetadas no container.
+    #   Equivalente a "docker run -e API_BASE_URL=...".
+    environment:
+
+      # API_BASE_URL → URL pública da API que o próprio Alarik usa.
+      #
+      # Quando o Alarik gera links (ex: callback de upload, link de download),
+      # usa esta URL como base.
+      #
+      # Usa localhost:8085 porque quem acessa esses links é o BROWSER
+      # (que está fora do Docker, no seu computador).
+      - API_BASE_URL=http://localhost:8085
+
+      # CONSOLE_BASE_URL → URL pública do Console (frontend).
+      #
+      # O Alarik redireciona o browser para cá após:
+      #   - Login bem-sucedido
+      #   - OAuth callback
+      #   - Redirecionamentos de autenticação
+      #
+      # Usa localhost:3005 porque o browser acessa o Console
+      # pela porta mapeada no host.
+      - CONSOLE_BASE_URL=http://localhost:3005
+
+      # ADMIN_USERNAME → nome de usuário do administrador padrão.
+      #   Criado automaticamente na primeira execução.
+      #   Usado para acessar o Console e gerenciar contas/buckets.
+      #   ⚠️ Em produção: troque por algo menos óbvio.
+      - ADMIN_USERNAME=alarik
+
+      # ADMIN_PASSWORD → senha do administrador padrão.
+      #   ⚠️ Em produção: troque por senha forte.
+      #   Ex: openssl rand -base64 16
+      - ADMIN_PASSWORD=alarik
+
+      # JWT → chave secreta para assinar tokens JWT (JSON Web Tokens).
+      #
+      # Como funciona:
+      #   1. Usuário faz login → Alarik gera um token JWT
+      #   2. Token é assinado com esta chave (HMAC-SHA256)
+      #   3. Cliente envia token em cada requisição (header Authorization)
+      #   4. Alarik verifica a assinatura → se válida, permite acesso
+      #
+      # Se alguém souber a chave → pode forjar tokens válidos.
+      #   ⚠️ Em produção: use uma string aleatória forte.
+      #   Ex: openssl rand -base64 32
+      - JWT=YOUR_SECURE_JWT_KEY
+
+      # ALLOW_ACCOUNT_CREATION → controla se novos usuários podem
+      #   se registrar sozinhos pelo Console.
+      #
+      # false → apenas o admin cria contas (modo corporativo)
+      # true  → qualquer pessoa pode se registrar (modo aberto)
+      #
+      # Modo "false" é mais seguro:
+      #   - Evita contas não autorizadas
+      #   - Admin controla quem tem acesso
+      #   - Admin define access keys para cada conta
+      - ALLOW_ACCOUNT_CREATION=false
+
+    # volumes → monta diretórios ou volumes dentro do container.
+    #
+    # alarik-storage:/app/Storage → VOLUME NOMEADO (não bind mount).
+    #
+    #   O que fica em /app/Storage:
+    #     - Banco de dados SQLite (contas, buckets, permissões)
+    #     - Arquivos de configuração
+    #     - Dados dos objetos S3 (arquivos que você faz upload)
+    #
+    #   Por que volume nomeado e não bind mount?
+    #     - Melhor performance (especialmente Mac/Windows)
+    #     - Docker gerencia o ciclo de vida
+    #     - Dados sobrevivem a "docker compose down"
+    #     - Dados são perdidos apenas com "docker compose down -v"
+    volumes:
+      - alarik-storage:/app/Storage
+
+    # networks → redes virtuais que este container participa.
+    #
+    # spark-net → rede EXTERNA criada pelo Compose do Spark.
+    #   external: true diz ao Compose: "não crie uma rede nova,
+    #   use a que já existe".
+    #
+    # Isso permite que:
+    #   - Jupyter acesse Alarik via http://alarik:8080
+    #   - Console acesse Alarik via http://alarik:8080
+    #   - Alarik acesse Spark/HDFS pelo nome (se necessário)
+    networks:
+      - spark-net
+
+  # ── ALARIK CONSOLE (Frontend) ───────────────────────────────────────
+  #
+  # Interface web (Nuxt/Vue) para gerenciar o Alarik.
+  #
+  # O que o Console faz:
+  #   - Login/logout de usuários
+  #   - Criar e gerenciar buckets
+  #   - Fazer upload e download de arquivos
+  #   - Gerar access keys (para Spark e outros clientes)
+  #   - Gerenciar permissões e contas
+  #
+  # Arquitetura do Console:
+  #   Browser (seu computador)
+  #     → http://localhost:3005
+  #       → Console (container Nuxt, porta 3000)
+  #         → API calls para http://alarik:8080 (rede interna)
+  #
+  # ⚠️ NUXT_PUBLIC_* são variáveis que o Nuxt EMBUTA no JavaScript
+  #   que roda no BROWSER do usuário. Por isso usam localhost,
+  #   não o hostname interno do Docker.
+  console:
+
+    image: ghcr.io/achtungsoftware/alarik-console:latest
+    container_name: console
+    restart: unless-stopped
+
+    # "3005:3000"
+    #   O Nuxt (framework do Console) escuta na porta 3000.
+    #   Mapeia para 3005 no host → http://localhost:3005
+    #
+    #   Por que 3005?
+    #     Evita conflito com outros serviços web.
+    #     3000 é o padrão do Nuxt, mas pode conflitar com
+    #     outros projetos de desenvolvimento no host.
+    ports:
+      - "3005:3000"
+
+    environment:
+
+      # NUXT_PUBLIC_API_BASE_URL → URL da API que o BROWSER do usuário usa.
+      #
+      # O Console roda DENTRO do Docker, mas o JavaScript que ele gera
+      # roda no BROWSER do usuário (FORA do Docker).
+      #
+      # Quando você abre http://localhost:3005 no browser:
+      #   1. Nuxt serve a página HTML + JavaScript
+      #   2. JavaScript roda no SEU browser
+      #   3. JavaScript faz fetch() para http://localhost:8085 (esta URL)
+      #   4. Requisição vai do browser → host → container Alarik
+      #
+      # ⚠️ Se colocasse http://alarik:8080 aqui, o BROWSER tentaria
+      #   resolver "alarik" no DNS público (não existe) → erro.
+      #   "alarik" só funciona DENTRO do Docker.
+      - NUXT_PUBLIC_API_BASE_URL=http://localhost:8085
+
+      # NUXT_PUBLIC_CONSOLE_BASE_URL → URL do próprio Console.
+      #   Usado para:
+      #     - Redirects após login
+      #     - Links internos
+      #     - Configuração de OAuth callbacks
+      - NUXT_PUBLIC_CONSOLE_BASE_URL=http://localhost:3005
+
+      # NUXT_PUBLIC_ALLOW_ACCOUNT_CREATION → espelha a config do backend.
+      #   Controla se o botão "Criar conta" aparece na tela de login.
+      #   Se false → tela mostra apenas campo de login (sem opção de registro).
+      - NUXT_PUBLIC_ALLOW_ACCOUNT_CREATION=false
+
+    # depends_on → define ordem de inicialização.
+    #   O Console SÓ inicia DEPOIS que o Alarik estiver rodando.
+    #
+    #   ⚠️ depends_on verifica apenas se o container INICIOU,
+    #   não se o processo dentro dele está PRONTO para aceitar conexões.
+    #   O Console pode tentar fazer a primeira requisição antes do
+    #   Alarik estar pronto. Mas o Nuxt faz retry automático no browser.
+    #
+    #   Para garantia total: use healthcheck + condition: service_healthy.
+    depends_on:
+      - alarik
+
+    networks:
+      - spark-net
+
+# ══════════════════════════════════════════════════════════════════════
+# REDE — Conexão com o cluster Spark/HDFS
+# ══════════════════════════════════════════════════════════════════════
+#
+# Esta rede NÃO é criada por este Compose.
+# Já existe: foi criada pelo docker-compose.yml do Spark/HDFS.
+#
+# external: true → "não crie, use a existente"
+# name → nome real da rede (obtido com: docker network ls | grep spark)
+#
+# O que acontece sem external: true?
+#   O Compose tentaria criar uma rede chamada "spark-net".
+#   Docker retornaria erro: "network spark-net already exists".
+#
+# O que acontece se o nome estiver errado?
+#   O Compose tentaria usar uma rede que não existe.
+#   Docker retornaria erro: "network spark-docker_spark-net not found".
+#
+# Fluxo de descoberta:
+#   1. Rode: docker network ls | grep spark
+#   2. Copie o nome que aparecer (ex: spark-docker_spark-net)
+#   3. Coloque no campo "name:" abaixo
+# ══════════════════════════════════════════════════════════════════════
+networks:
+  spark-net:
+    external: true
+    name: spark-docker_spark-net
+
+# ══════════════════════════════════════════════════════════════════════
+# VOLUME — Dados persistentes do Alarik
+# ══════════════════════════════════════════════════════════════════════
+#
+# Volume nomeado gerenciado pelo Docker Engine.
+# Armazenado em /var/lib/docker/volumes/alarik-storage/_data/
+#
+# O que persiste:
+#   - Banco de dados SQLite (usuários, buckets, permissões, keys)
+#   - Objetos S3 (arquivos que você faz upload via Console ou S3A)
+#   - Configurações internas do Alarik
+#
+# Ciclo de vida:
+#   docker compose up      → cria volume (se não existe)
+#   docker compose down    → containers removidos, volume PRESERVADO
+#   docker compose up      → reutiliza volume existente (dados intactos)
+#   docker compose down -v → remove containers E volume (dados PERDIDOS)
+#
+# Para inspecionar:
+#   docker volume ls                     → lista volumes
+#   docker volume inspect alarik-storage → mostra metadados e caminho
+#   docker volume prune                  → remove volumes não utilizados
+# ══════════════════════════════════════════════════════════════════════
+volumes:
+  alarik-storage:
